@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>下班倒计时</title>
+    <title>时间菜单</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -19,20 +19,23 @@
 
     <main class="app-shell">
       <section class="hero-card">
+        <div class="menu-bar" role="tablist" aria-label="时间模式">
+          <button id="countdownTab" class="menu-tab is-active" type="button" role="tab" aria-selected="true">
+            倒计时
+          </button>
+          <button id="anniversaryTab" class="menu-tab" type="button" role="tab" aria-selected="false">
+            纪念日
+          </button>
+        </div>
+
         <div class="hero-top">
           <div class="hero-intro">
-            <p class="eyebrow">Clock Out Countdown</p>
-            <h1>下班倒计时</h1>
-            <p class="subtitle">
-              设定上下班时间，看看今天已经走到哪里，也给自己留一点下班前的仪式感。
+            <p class="eyebrow" id="heroEyebrow">选择一种时间记录方式</p>
+            <p class="subtitle" id="heroSubtitle">
+              选择一种时间记录方式。
             </p>
           </div>
-
-          <div class="orbital-badge" aria-hidden="true">
-            <div class="orbital-ring orbital-ring-a"></div>
-            <div class="orbital-ring orbital-ring-b"></div>
-            <div class="orbital-core">OFF</div>
-          </div>
+          <div class="hero-chip" id="orbitalCore">今天</div>
         </div>
 
         <article class="quote-card">
@@ -45,61 +48,87 @@
           </p>
         </article>
 
-        <div class="countdown-panel">
-          <div class="panel-glow" aria-hidden="true"></div>
-          <div class="time-grid" aria-live="polite">
-            <article class="time-block">
-              <span id="hours" class="time-value">00</span>
-              <span class="time-label">小时</span>
-            </article>
-            <article class="time-block">
-              <span id="minutes" class="time-value">00</span>
-              <span class="time-label">分钟</span>
-            </article>
-            <article class="time-block">
-              <span id="seconds" class="time-value">00</span>
-              <span class="time-label">秒</span>
-            </article>
+        <div id="countdownView" class="mode-view">
+          <div class="countdown-panel">
+            <div class="time-grid" aria-live="polite">
+              <article class="time-block">
+                <span id="hours" class="time-value">00</span>
+                <span class="time-label">小时</span>
+              </article>
+              <article class="time-block">
+                <span id="minutes" class="time-value">00</span>
+                <span class="time-label">分钟</span>
+              </article>
+              <article class="time-block">
+                <span id="seconds" class="time-value">00</span>
+                <span class="time-label">秒</span>
+              </article>
+            </div>
+
+            <div class="divider-line" aria-hidden="true"></div>
+
+            <p class="mood-line">时光在指尖滑落</p>
+
+            <div class="progress-section">
+              <div class="progress-meta">
+                <span>工作时间进度</span>
+                <span id="progressText">尚未开始</span>
+              </div>
+              <div class="progress-track" aria-hidden="true">
+                <div id="progressFill" class="progress-fill"></div>
+              </div>
+            </div>
+
+            <div class="status-row">
+              <span class="status-dot" aria-hidden="true"></span>
+              <p id="statusText" class="status-text">先设置一个下班时间，开始今天的期待。</p>
+            </div>
           </div>
 
-          <div class="progress-section">
-            <div class="progress-meta">
-              <span>工作时间进度</span>
-              <span id="progressText">尚未开始</span>
-            </div>
-            <div class="progress-track" aria-hidden="true">
-              <div id="progressFill" class="progress-fill"></div>
-            </div>
-          </div>
-
-          <div class="status-row">
-            <span class="status-dot" aria-hidden="true"></span>
-            <p id="statusText" class="status-text">先设置一个下班时间，开始今天的期待。</p>
-          </div>
-
-          <div class="energy-strip">
-            <div class="energy-chip">
-              <span class="energy-label">当前阶段</span>
-              <strong id="phaseText">等待设定</strong>
-            </div>
-            <div class="energy-chip">
-              <span class="energy-label">今日目标</span>
-              <strong>准时下班</strong>
-            </div>
+          <div class="action-row">
+            <button id="openEditorBtn" class="primary-btn" type="button">设置下班时间</button>
+            <button id="resetBtn" class="ghost-btn" type="button">清除设置</button>
           </div>
         </div>
 
-        <div class="action-row">
-          <button id="openEditorBtn" class="primary-btn" type="button">设置下班时间</button>
-          <button id="resetBtn" class="ghost-btn" type="button">清除设置</button>
+        <div id="anniversaryView" class="mode-view is-hidden">
+          <div class="anniversary-panel">
+            <div class="anniversary-head">
+              <p class="anniversary-kicker" id="anniversaryTypeText">纪念日</p>
+              <h2 class="anniversary-title" id="anniversaryNameText">还没有设置纪念日</h2>
+              <p class="anniversary-date" id="anniversaryDateText">输入一个重要日期，开始记录它。</p>
+            </div>
+
+            <div class="anniversary-days-card">
+              <span class="anniversary-days-label" id="anniversaryDaysLabel">已经走过</span>
+              <div class="anniversary-days-number">
+                <span id="anniversaryDays">0</span>
+                <small>天</small>
+              </div>
+            </div>
+
+            <div class="divider-line" aria-hidden="true"></div>
+
+            <p class="mood-line">把重要的日子留在时间里</p>
+
+            <div class="status-row">
+              <span class="status-dot" aria-hidden="true"></span>
+              <p id="anniversaryStatusText" class="status-text">可以记录生日、恋爱纪念日、入职日或任何重要时刻。</p>
+            </div>
+          </div>
+
+          <div class="action-row">
+            <button id="openAnniversaryBtn" class="primary-btn" type="button">设置纪念日</button>
+            <button id="resetAnniversaryBtn" class="ghost-btn" type="button">清除设置</button>
+          </div>
         </div>
       </section>
 
       <section class="editor-card">
         <div class="editor-header">
           <div>
-            <p class="card-tag">今日设置</p>
-            <h2>安排你的下班时刻</h2>
+            <p class="card-tag" id="editorTag">今日设置</p>
+            <h2 id="editorTitle">安排你的下班时刻</h2>
           </div>
           <p id="currentTimeText" class="current-time">现在时间：--:--:--</p>
         </div>
@@ -111,26 +140,56 @@
           </p>
         </div>
 
-        <div class="editor-body">
-          <label class="time-input-wrap" for="workStartTime">
-            <span>上班时间</span>
-            <input id="workStartTime" type="time" step="60" />
-            <small class="field-hint">不填写时默认按 09:00 开始计算工作进度。</small>
-          </label>
+        <div id="countdownEditor" class="editor-mode">
+          <div class="editor-body">
+            <label class="time-input-wrap" for="workStartTime">
+              <span>上班时间</span>
+              <input id="workStartTime" type="time" step="60" />
+              <small class="field-hint">不填写时默认按 09:00 开始计算工作进度。</small>
+            </label>
 
-          <label class="time-input-wrap" for="workEndTime">
-            <span>下班时间</span>
-            <input id="workEndTime" type="time" step="60" />
-          </label>
+            <label class="time-input-wrap" for="workEndTime">
+              <span>下班时间</span>
+              <input id="workEndTime" type="time" step="60" />
+            </label>
 
-          <div class="quick-actions" aria-label="快捷时间">
-            <button class="quick-btn" type="button" data-time="17:30">17:30</button>
-            <button class="quick-btn" type="button" data-time="18:00">18:00</button>
-            <button class="quick-btn" type="button" data-time="18:30">18:30</button>
-            <button class="quick-btn" type="button" data-time="19:00">19:00</button>
+            <div class="quick-actions" aria-label="快捷时间">
+              <button class="quick-btn" type="button" data-time="17:30">17:30</button>
+              <button class="quick-btn" type="button" data-time="18:00">18:00</button>
+              <button class="quick-btn" type="button" data-time="18:30">18:30</button>
+              <button class="quick-btn" type="button" data-time="19:00">19:00</button>
+            </div>
+
+            <button id="saveBtn" class="save-btn" type="button">开始倒计时</button>
           </div>
+        </div>
 
-          <button id="saveBtn" class="save-btn" type="button">开始倒计时</button>
+        <div id="anniversaryEditor" class="editor-mode is-hidden">
+          <div class="editor-body">
+            <div class="time-input-wrap">
+              <span>纪念类型</span>
+              <div id="anniversaryTypeGroup" class="type-chip-group" role="radiogroup" aria-label="纪念类型">
+                <button class="type-chip is-active" type="button" data-type="生日" role="radio" aria-checked="true">生日</button>
+                <button class="type-chip" type="button" data-type="恋爱纪念日" role="radio" aria-checked="false">恋爱纪念日</button>
+                <button class="type-chip" type="button" data-type="结婚纪念日" role="radio" aria-checked="false">结婚纪念日</button>
+                <button class="type-chip" type="button" data-type="入职纪念日" role="radio" aria-checked="false">入职纪念日</button>
+                <button class="type-chip" type="button" data-type="毕业纪念日" role="radio" aria-checked="false">毕业纪念日</button>
+                <button class="type-chip" type="button" data-type="自定义" role="radio" aria-checked="false">自定义</button>
+              </div>
+            </div>
+
+            <label class="time-input-wrap" for="anniversaryName">
+              <span>名称</span>
+              <input id="anniversaryName" type="text" maxlength="24" placeholder="例如：和她在一起" />
+            </label>
+
+            <label class="time-input-wrap" for="anniversaryDate">
+              <span>日期</span>
+              <input id="anniversaryDate" type="date" />
+            </label>
+
+            <button id="saveAnniversaryBtn" class="save-btn" type="button">开始记录</button>
+          </div>
         </div>
       </section>
     </main>
