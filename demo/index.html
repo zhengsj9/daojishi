@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>下班倒计时</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Noto+Sans+SC:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="ambient-layer ambient-layer-a" aria-hidden="true"></div>
+    <div class="ambient-layer ambient-layer-b" aria-hidden="true"></div>
+    <div class="grid-overlay" aria-hidden="true"></div>
+
+    <main class="app-shell">
+      <section class="hero-card">
+        <div class="hero-top">
+          <div class="hero-intro">
+            <p class="eyebrow">Clock Out Countdown</p>
+            <h1>下班倒计时</h1>
+            <p class="subtitle">
+              设定上下班时间，看看今天已经走到哪里，也给自己留一点下班前的仪式感。
+            </p>
+          </div>
+
+          <div class="orbital-badge" aria-hidden="true">
+            <div class="orbital-ring orbital-ring-a"></div>
+            <div class="orbital-ring orbital-ring-b"></div>
+            <div class="orbital-core">OFF</div>
+          </div>
+        </div>
+
+        <article class="quote-card">
+          <p class="quote-label">Daily Reflection</p>
+          <blockquote id="dailyQuote" class="quote-text">
+            真正的从容，不是赶时间，而是知道自己要去哪里。
+          </blockquote>
+          <p class="quote-author" id="quoteAuthor">
+            每日一句哲理，陪你把忙碌的一天过得更有节奏。
+          </p>
+        </article>
+
+        <div class="countdown-panel">
+          <div class="panel-glow" aria-hidden="true"></div>
+          <div class="time-grid" aria-live="polite">
+            <article class="time-block">
+              <span id="hours" class="time-value">00</span>
+              <span class="time-label">小时</span>
+            </article>
+            <article class="time-block">
+              <span id="minutes" class="time-value">00</span>
+              <span class="time-label">分钟</span>
+            </article>
+            <article class="time-block">
+              <span id="seconds" class="time-value">00</span>
+              <span class="time-label">秒</span>
+            </article>
+          </div>
+
+          <div class="progress-section">
+            <div class="progress-meta">
+              <span>工作时间进度</span>
+              <span id="progressText">尚未开始</span>
+            </div>
+            <div class="progress-track" aria-hidden="true">
+              <div id="progressFill" class="progress-fill"></div>
+            </div>
+          </div>
+
+          <div class="status-row">
+            <span class="status-dot" aria-hidden="true"></span>
+            <p id="statusText" class="status-text">先设置一个下班时间，开始今天的期待。</p>
+          </div>
+
+          <div class="energy-strip">
+            <div class="energy-chip">
+              <span class="energy-label">当前阶段</span>
+              <strong id="phaseText">等待设定</strong>
+            </div>
+            <div class="energy-chip">
+              <span class="energy-label">今日目标</span>
+              <strong>准时下班</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="action-row">
+          <button id="openEditorBtn" class="primary-btn" type="button">设置下班时间</button>
+          <button id="resetBtn" class="ghost-btn" type="button">清除设置</button>
+        </div>
+      </section>
+
+      <section class="editor-card">
+        <div class="editor-header">
+          <div>
+            <p class="card-tag">今日设置</p>
+            <h2>安排你的下班时刻</h2>
+          </div>
+          <p id="currentTimeText" class="current-time">现在时间：--:--:--</p>
+        </div>
+
+        <div class="insight-card">
+          <p class="insight-label">状态提示</p>
+          <p id="insightText" class="insight-text">
+            设一个明确的下班时间，会让今天更有终点感。
+          </p>
+        </div>
+
+        <div class="editor-body">
+          <label class="time-input-wrap" for="workStartTime">
+            <span>上班时间</span>
+            <input id="workStartTime" type="time" step="60" />
+            <small class="field-hint">不填写时默认按 09:00 开始计算工作进度。</small>
+          </label>
+
+          <label class="time-input-wrap" for="workEndTime">
+            <span>下班时间</span>
+            <input id="workEndTime" type="time" step="60" />
+          </label>
+
+          <div class="quick-actions" aria-label="快捷时间">
+            <button class="quick-btn" type="button" data-time="17:30">17:30</button>
+            <button class="quick-btn" type="button" data-time="18:00">18:00</button>
+            <button class="quick-btn" type="button" data-time="18:30">18:30</button>
+            <button class="quick-btn" type="button" data-time="19:00">19:00</button>
+          </div>
+
+          <button id="saveBtn" class="save-btn" type="button">开始倒计时</button>
+        </div>
+      </section>
+    </main>
+
+    <script src="./script.js"></script>
+  </body>
+</html>
