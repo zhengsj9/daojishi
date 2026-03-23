@@ -1886,6 +1886,16 @@ function applyCountdownIdleState() {
   }
 }
 
+function renderActiveCountdown() {
+  if (!countdownRecord) {
+    applyCountdownIdleState();
+    return;
+  }
+
+  countdownNameTextEl.textContent = countdownRecord.name;
+  countdownTargetTextEl.textContent = `目标时间：${formatTimestamp(countdownRecord.targetAt)}`;
+}
+
 function applyAnniversaryIdleState() {
   anniversaryRecord = null;
   activeAnniversaryId = "";
@@ -2359,6 +2369,7 @@ function tickCountdown() {
 
   const now = Date.now();
   const parts = getCountdownDiffParts(countdownRecord.targetAt, now);
+  renderActiveCountdown();
   renderCountdownList(now);
 
   setDisplay(parts.days, parts.hours, parts.minutes, parts.seconds);
