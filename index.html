@@ -92,7 +92,7 @@
         </div>
 
         <div id="anniversaryView" class="mode-view is-hidden">
-          <div class="anniversary-panel">
+          <div id="anniversaryPanel" class="anniversary-panel">
             <div class="anniversary-head">
               <p class="anniversary-kicker" id="anniversaryTypeText">纪念日</p>
               <h2 class="anniversary-title" id="anniversaryNameText">还没有设置纪念日</h2>
@@ -187,6 +187,25 @@
               <span>日期</span>
               <input id="anniversaryDate" type="date" />
             </label>
+
+            <div class="image-upload-card">
+              <div class="image-upload-head">
+                <span>背景图片</span>
+                <small class="field-hint">支持常见图片格式，保存后会保留在当前浏览器。</small>
+              </div>
+
+              <div id="anniversaryImagePreview" class="anniversary-image-preview" aria-hidden="true">
+                <span id="anniversaryImagePreviewText">未选择背景图</span>
+              </div>
+
+              <div class="image-upload-actions">
+                <button id="selectAnniversaryImageBtn" class="ghost-btn" type="button">选择背景图</button>
+                <button id="clearAnniversaryImageBtn" class="quick-btn" type="button">移除图片</button>
+              </div>
+
+              <input id="anniversaryImageInput" type="file" accept="image/*" hidden />
+              <p id="anniversaryImageHint" class="field-hint">未设置背景图时，会使用默认纪念日卡片样式。</p>
+            </div>
 
             <button id="saveAnniversaryBtn" class="save-btn" type="button">开始记录</button>
           </div>

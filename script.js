@@ -47,9 +47,20 @@ const anniversaryDateTextEl = document.querySelector("#anniversaryDateText");
 const anniversaryDaysEl = document.querySelector("#anniversaryDays");
 const anniversaryDaysLabelEl = document.querySelector("#anniversaryDaysLabel");
 const anniversaryStatusTextEl = document.querySelector("#anniversaryStatusText");
+const anniversaryPanelEl = document.querySelector("#anniversaryPanel");
+const anniversaryImageInputEl = document.querySelector("#anniversaryImageInput");
+const selectAnniversaryImageBtnEl = document.querySelector("#selectAnniversaryImageBtn");
+const clearAnniversaryImageBtnEl = document.querySelector("#clearAnniversaryImageBtn");
+const anniversaryImagePreviewEl = document.querySelector("#anniversaryImagePreview");
+const anniversaryImagePreviewTextEl = document.querySelector("#anniversaryImagePreviewText");
+const anniversaryImageHintEl = document.querySelector("#anniversaryImageHint");
 
 const WORKDAY_START_HOUR = 9;
 const WORKDAY_START_MINUTE = 0;
+const ANNIVERSARY_IMAGE_DB_NAME = "time-menu-media";
+const ANNIVERSARY_IMAGE_STORE_NAME = "images";
+const ANNIVERSARY_IMAGE_KEY = "anniversary-background";
+const MAX_ANNIVERSARY_IMAGE_SIZE = 8 * 1024 * 1024;
 const DAILY_QUOTES = [
   {
     text: "真正的从容，不是赶时间，而是知道自己要去哪里。",
@@ -78,6 +89,7 @@ let targetTime = null;
 let workStartTimeValue = "";
 let anniversaryRecord = null;
 let anniversaryTypeValue = "生日";
+let anniversaryImageUrl = "";
 
 function pad(value) {
   return String(value).padStart(2, "0");
@@ -230,6 +242,23 @@ function persistAnniversary(record) {
   localStorage.setItem(ANNIVERSARY_STORAGE_KEY, JSON.stringify(record));
 }
 
+function readSavedAnniversary() {
+  const rawRecord = localStorage.getItem(ANNIVERSARY_STORAGE_KEY);
+
+  if (!rawRecord) return null;
+
+  try {
+    const parsedRecord = JSON.parse(rawRecord);
+    if (!parsedRecord?.type || !parsedRecord?.name || !parsedRecord?.date) {
+      throw new Error("invalid anniversary record");
+    }
+    return parsedRecord;
+  } catch {
+    localStorage.removeItem(ANNIVERSARY_STORAGE_KEY);
+    return null;
+  }
+}
+
 function setAnniversaryType(value) {
   anniversaryTypeValue = value;
   anniversaryTypeChipEls.forEach((chip) => {
@@ -247,6 +276,142 @@ function clearCountdown() {
 
 function clearAnniversary() {
   localStorage.removeItem(ANNIVERSARY_STORAGE_KEY);
+}
+
+function setAnniversaryImageHint(message) {
+  anniversaryImageHintEl.textContent = message;
+}
+
+function revokeAnniversaryImageUrl() {
+  if (!anniversaryImageUrl) return;
+  URL.revokeObjectURL(anniversaryImageUrl);
+  anniversaryImageUrl = "";
+}
+
+function applyAnniversaryImage(record) {
+  revokeAnniversaryImageUrl();
+
+  if (!record?.blob) {
+    anniversaryPanelEl.classList.remove("has-image");
+    anniversaryImagePreviewEl.classList.remove("has-image");
+    anniversaryPanelEl.style.removeProperty("--anniversary-cover");
+    anniversaryImagePreviewEl.style.removeProperty("--anniversary-cover");
+    anniversaryImagePreviewTextEl.textContent = "未选择背景图";
+    clearAnniversaryImageBtnEl.disabled = true;
+    setAnniversaryImageHint("未设置背景图时，会使用默认纪念日卡片样式。");
+    return;
+  }
+
+  anniversaryImageUrl = URL.createObjectURL(record.blob);
+  const coverValue = `url("${anniversaryImageUrl}")`;
+  anniversaryPanelEl.style.setProperty("--anniversary-cover", coverValue);
+  anniversaryImagePreviewEl.style.setProperty("--anniversary-cover", coverValue);
+  anniversaryPanelEl.classList.add("has-image");
+  anniversaryImagePreviewEl.classList.add("has-image");
+  anniversaryImagePreviewTextEl.textContent = record.name ? `当前背景：${record.name}` : "已选择背景图";
+  clearAnniversaryImageBtnEl.disabled = false;
+  setAnniversaryImageHint("背景图已保存在当前浏览器，刷新页面后也会继续显示。");
+}
+
+function openAnniversaryImageDb() {
+  return new Promise((resolve, reject) => {
+    if (!("indexedDB" in window)) {
+      resolve(null);
+      return;
+    }
+
+    const request = indexedDB.open(ANNIVERSARY_IMAGE_DB_NAME, 1);
+
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(ANNIVERSARY_IMAGE_STORE_NAME)) {
+        db.createObjectStore(ANNIVERSARY_IMAGE_STORE_NAME);
+      }
+    };
+
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error || new Error("IndexedDB is unavailable"));
+  });
+}
+
+async function readAnniversaryImage() {
+  const db = await openAnniversaryImageDb();
+
+  if (!db) {
+    return null;
+  }
+
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(ANNIVERSARY_IMAGE_STORE_NAME, "readonly");
+    const request = transaction.objectStore(ANNIVERSARY_IMAGE_STORE_NAME).get(ANNIVERSARY_IMAGE_KEY);
+
+    request.onsuccess = () => resolve(request.result || null);
+    request.onerror = () => reject(request.error || new Error("Failed to read anniversary image"));
+    transaction.oncomplete = () => db.close();
+    transaction.onabort = () => {
+      db.close();
+      reject(transaction.error || new Error("Failed to read anniversary image"));
+    };
+  });
+}
+
+async function persistAnniversaryImage(file) {
+  const db = await openAnniversaryImageDb();
+
+  if (!db) {
+    throw new Error("IndexedDB is not supported");
+  }
+
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(ANNIVERSARY_IMAGE_STORE_NAME, "readwrite");
+    transaction.objectStore(ANNIVERSARY_IMAGE_STORE_NAME).put(
+      {
+        blob: file,
+        name: file.name,
+        updatedAt: Date.now(),
+      },
+      ANNIVERSARY_IMAGE_KEY
+    );
+
+    transaction.oncomplete = () => {
+      db.close();
+      resolve();
+    };
+    transaction.onerror = () => {
+      db.close();
+      reject(transaction.error || new Error("Failed to save anniversary image"));
+    };
+    transaction.onabort = () => {
+      db.close();
+      reject(transaction.error || new Error("Failed to save anniversary image"));
+    };
+  });
+}
+
+async function removeAnniversaryImage() {
+  const db = await openAnniversaryImageDb();
+
+  if (!db) {
+    return;
+  }
+
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(ANNIVERSARY_IMAGE_STORE_NAME, "readwrite");
+    transaction.objectStore(ANNIVERSARY_IMAGE_STORE_NAME).delete(ANNIVERSARY_IMAGE_KEY);
+
+    transaction.oncomplete = () => {
+      db.close();
+      resolve();
+    };
+    transaction.onerror = () => {
+      db.close();
+      reject(transaction.error || new Error("Failed to delete anniversary image"));
+    };
+    transaction.onabort = () => {
+      db.close();
+      reject(transaction.error || new Error("Failed to delete anniversary image"));
+    };
+  });
 }
 
 function toMinutes(timeValue) {
@@ -281,7 +446,9 @@ function setMode(mode) {
     orbitalCoreEl.textContent = "纪念日";
     insightTextEl.textContent = anniversaryRecord
       ? "已经开始记录这个重要日子，页面会自动帮你更新天数。"
-      : "可以先选择纪念类型，再填名称和日期开始记录。";
+      : anniversaryPanelEl.classList.contains("has-image")
+        ? "背景图已经准备好了，再填写名称和日期就能开始记录。"
+        : "可以先选择纪念类型，再填名称和日期开始记录。";
   }
 }
 
@@ -329,11 +496,12 @@ function startAnniversary(record) {
   }
 }
 
-function resetAnniversary() {
+async function resetAnniversary() {
   anniversaryRecord = null;
   setAnniversaryType("生日");
   anniversaryNameEl.value = "";
   anniversaryDateEl.value = "";
+  anniversaryImageInputEl.value = "";
   clearAnniversary();
   anniversaryTypeTextEl.textContent = "纪念日";
   anniversaryNameTextEl.textContent = "还没有设置纪念日";
@@ -341,6 +509,14 @@ function resetAnniversary() {
   anniversaryDaysEl.textContent = "0";
   anniversaryDaysLabelEl.textContent = "已经走过";
   anniversaryStatusTextEl.textContent = "可以记录生日、恋爱纪念日、入职日或任何重要时刻。";
+  applyAnniversaryImage(null);
+
+  try {
+    await removeAnniversaryImage();
+  } catch {
+    setAnniversaryImageHint("背景图清除失败了，可以再试一次。");
+  }
+
   if (currentMode === "anniversary") {
     insightTextEl.textContent = "可以先选择纪念类型，再填名称和日期开始记录。";
   }
@@ -442,6 +618,57 @@ function handleSaveAnniversary() {
   });
 }
 
+async function handleAnniversaryImageChange(event) {
+  const [file] = event.target.files || [];
+  event.target.value = "";
+
+  if (!file) return;
+
+  if (!file.type.startsWith("image/")) {
+    setAnniversaryImageHint("请选择 JPG、PNG、WebP 等图片文件。");
+    return;
+  }
+
+  if (file.size > MAX_ANNIVERSARY_IMAGE_SIZE) {
+    setAnniversaryImageHint("图片太大了，请换一张 8MB 以内的图片。");
+    return;
+  }
+
+  setAnniversaryImageHint("正在保存背景图...");
+
+  try {
+    await persistAnniversaryImage(file);
+    applyAnniversaryImage({
+      blob: file,
+      name: file.name,
+    });
+
+    if (currentMode === "anniversary") {
+      insightTextEl.textContent = anniversaryRecord
+        ? "纪念日背景已经更新，这张图片会陪着这个重要日子一起展示。"
+        : "背景图已经准备好了，再填写名称和日期就能开始记录。";
+    }
+  } catch {
+    setAnniversaryImageHint("背景图保存失败了，可能是图片过大或浏览器存储空间不足。");
+  }
+}
+
+async function handleClearAnniversaryImage() {
+  applyAnniversaryImage(null);
+  anniversaryImageInputEl.value = "";
+
+  try {
+    await removeAnniversaryImage();
+    if (currentMode === "anniversary") {
+      insightTextEl.textContent = anniversaryRecord
+        ? "背景图已经移除，纪念日卡片已恢复成默认样式。"
+        : "背景图已经移除，可以重新选择一张更合适的图片。";
+    }
+  } catch {
+    setAnniversaryImageHint("背景图移除失败了，可以再试一次。");
+  }
+}
+
 countdownTabEl.addEventListener("click", () => setMode("countdown"));
 anniversaryTabEl.addEventListener("click", () => setMode("anniversary"));
 
@@ -459,6 +686,9 @@ saveBtnEl.addEventListener("click", handleSave);
 resetBtnEl.addEventListener("click", resetCountdown);
 saveAnniversaryBtnEl.addEventListener("click", handleSaveAnniversary);
 resetAnniversaryBtnEl.addEventListener("click", resetAnniversary);
+selectAnniversaryImageBtnEl.addEventListener("click", () => anniversaryImageInputEl.click());
+clearAnniversaryImageBtnEl.addEventListener("click", handleClearAnniversaryImage);
+anniversaryImageInputEl.addEventListener("change", handleAnniversaryImageChange);
 
 anniversaryTypeGroupEl.addEventListener("click", (event) => {
   const chip = event.target.closest(".type-chip");
@@ -486,7 +716,7 @@ quickBtnEls.forEach((button) => {
 const savedTime = normalizeTimeValue(localStorage.getItem(STORAGE_KEY));
 const savedStartTime = normalizeTimeValue(localStorage.getItem(START_STORAGE_KEY));
 const countdownDraft = readCountdownDraft();
-const savedAnniversary = localStorage.getItem(ANNIVERSARY_STORAGE_KEY);
+const savedAnniversary = readSavedAnniversary();
 
 if (savedTime) {
   startCountdown(savedTime, savedStartTime);
@@ -502,14 +732,26 @@ if (savedTime) {
 }
 
 if (savedAnniversary) {
-  const parsed = JSON.parse(savedAnniversary);
-  setAnniversaryType(parsed.type);
-  anniversaryNameEl.value = parsed.name;
-  anniversaryDateEl.value = parsed.date;
-  startAnniversary(parsed);
+  setAnniversaryType(savedAnniversary.type);
+  anniversaryNameEl.value = savedAnniversary.name;
+  anniversaryDateEl.value = savedAnniversary.date;
+  startAnniversary(savedAnniversary);
 } else {
   setAnniversaryType("生日");
 }
+
+applyAnniversaryImage(null);
+
+readAnniversaryImage()
+  .then((savedImage) => {
+    if (!savedImage?.blob) return;
+    applyAnniversaryImage(savedImage);
+  })
+  .catch(() => {
+    setAnniversaryImageHint("背景图读取失败了，可以重新选择一张图片。");
+  });
+
+window.addEventListener("beforeunload", revokeAnniversaryImageUrl);
 
 setDailyQuote();
 setMode("countdown");

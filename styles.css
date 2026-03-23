@@ -232,6 +232,53 @@ h2 {
   border: 1px solid var(--line);
 }
 
+.anniversary-panel {
+  isolation: isolate;
+}
+
+.anniversary-panel::before,
+.anniversary-panel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 220ms ease;
+}
+
+.anniversary-panel::before {
+  z-index: 0;
+  background:
+    linear-gradient(180deg, rgba(13, 34, 30, 0.18), rgba(13, 34, 30, 0.62)),
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.18), transparent 34%);
+}
+
+.anniversary-panel::after {
+  inset: auto 22px 22px;
+  height: 120px;
+  border-radius: 999px;
+  z-index: 0;
+  filter: blur(34px);
+  background: rgba(15, 36, 32, 0.22);
+}
+
+.anniversary-panel > * {
+  position: relative;
+  z-index: 1;
+}
+
+.anniversary-panel.has-image {
+  background-image: var(--anniversary-cover);
+  background-position: center;
+  background-size: cover;
+  border-color: rgba(244, 255, 252, 0.22);
+}
+
+.anniversary-panel.has-image::before,
+.anniversary-panel.has-image::after {
+  opacity: 1;
+}
+
 .quote-card {
   margin-top: 18px;
   padding: 18px 20px;
@@ -416,6 +463,36 @@ h2 {
   color: var(--ink-soft);
 }
 
+.anniversary-panel.has-image .anniversary-kicker,
+.anniversary-panel.has-image .anniversary-title,
+.anniversary-panel.has-image .anniversary-days-number span {
+  color: #f8fffd;
+  text-shadow: 0 12px 30px rgba(4, 15, 13, 0.28);
+}
+
+.anniversary-panel.has-image .anniversary-date,
+.anniversary-panel.has-image .anniversary-days-label,
+.anniversary-panel.has-image .anniversary-days-number small,
+.anniversary-panel.has-image .status-text,
+.anniversary-panel.has-image .mood-line {
+  color: rgba(240, 250, 247, 0.86);
+}
+
+.anniversary-panel.has-image .anniversary-days-card {
+  background: rgba(13, 34, 30, 0.34);
+  border-color: rgba(245, 255, 252, 0.16);
+  backdrop-filter: blur(16px);
+}
+
+.anniversary-panel.has-image .divider-line {
+  background: linear-gradient(90deg, transparent, rgba(245, 255, 252, 0.3), transparent);
+}
+
+.anniversary-panel.has-image .status-dot {
+  background: #d9fff2;
+  box-shadow: 0 0 0 6px rgba(221, 255, 245, 0.16);
+}
+
 .action-row,
 .quick-actions {
   display: flex;
@@ -453,6 +530,9 @@ select {
 .ghost-btn,
 .save-btn,
 .quick-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   padding: 12px 18px;
 }
 
@@ -466,6 +546,12 @@ select {
 .quick-btn.is-active {
   background: var(--accent-soft);
   color: var(--accent-deep);
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.56;
+  transform: none;
 }
 
 .editor-header {
@@ -499,6 +585,78 @@ select {
 .editor-body {
   display: grid;
   gap: 14px;
+}
+
+.image-upload-card {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 22px;
+  background: rgba(250, 255, 252, 0.82);
+  border: 1px solid var(--line);
+}
+
+.image-upload-head {
+  display: grid;
+  gap: 6px;
+}
+
+.image-upload-head span {
+  color: var(--ink-soft);
+  font-weight: 500;
+}
+
+.image-upload-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.anniversary-image-preview {
+  position: relative;
+  overflow: hidden;
+  min-height: 148px;
+  padding: 16px;
+  display: flex;
+  align-items: flex-end;
+  border-radius: 20px;
+  border: 1px dashed rgba(127, 194, 184, 0.42);
+  background:
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.82), transparent 34%),
+    linear-gradient(145deg, rgba(237, 248, 243, 0.92), rgba(245, 253, 250, 0.92));
+}
+
+.anniversary-image-preview::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(14, 33, 30, 0.05), rgba(14, 33, 30, 0.16));
+  opacity: 0.82;
+}
+
+.anniversary-image-preview.has-image {
+  border-style: solid;
+  border-color: rgba(245, 255, 252, 0.24);
+  background-image: var(--anniversary-cover);
+  background-position: center;
+  background-size: cover;
+}
+
+.anniversary-image-preview.has-image::before {
+  background: linear-gradient(180deg, rgba(14, 33, 30, 0.08), rgba(14, 33, 30, 0.58));
+  opacity: 1;
+}
+
+.anniversary-image-preview span {
+  position: relative;
+  z-index: 1;
+  color: var(--ink-strong);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.anniversary-image-preview.has-image span {
+  color: rgba(246, 255, 252, 0.96);
 }
 
 .time-input-wrap {
