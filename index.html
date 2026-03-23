@@ -52,8 +52,31 @@
         </article>
 
         <div id="countdownView" class="mode-view">
-          <div class="countdown-panel">
-            <div class="time-grid" aria-live="polite">
+          <div id="countdownPanel" class="countdown-panel">
+            <div class="countdown-head">
+              <p class="anniversary-kicker">倒计时</p>
+              <h2 class="countdown-title" id="countdownNameText">还没有添加倒计时</h2>
+              <p class="countdown-date" id="countdownTargetText">添加一个未来时间，把重要时刻提前放进期待里。</p>
+            </div>
+
+            <div class="countdown-meta-grid">
+              <article class="countdown-meta-card">
+                <span class="countdown-meta-label">目标时间</span>
+                <strong id="countdownMetaTarget">等待设置</strong>
+              </article>
+              <article class="countdown-meta-card">
+                <span class="countdown-meta-label">当前状态</span>
+                <strong id="countdownMetaState">未开始</strong>
+              </article>
+            </div>
+
+            <div class="divider-line" aria-hidden="true"></div>
+
+            <div class="time-grid countdown-time-grid" aria-live="polite">
+              <article class="time-block">
+                <span id="days" class="time-value">00</span>
+                <span class="time-label">天</span>
+              </article>
               <article class="time-block">
                 <span id="hours" class="time-value">00</span>
                 <span class="time-label">小时</span>
@@ -68,29 +91,31 @@
               </article>
             </div>
 
-            <div class="divider-line" aria-hidden="true"></div>
-
-            <p class="mood-line">时光在指尖滑落</p>
-
-            <div class="progress-section">
-              <div class="progress-meta">
-                <span>工作时间进度</span>
-                <span id="progressText">尚未开始</span>
-              </div>
-              <div class="progress-track" aria-hidden="true">
-                <div id="progressFill" class="progress-fill"></div>
-              </div>
-            </div>
+            <p class="mood-line">把等待变成一件值得期待的事</p>
 
             <div class="status-row">
               <span class="status-dot" aria-hidden="true"></span>
-              <p id="statusText" class="status-text">先设置一个下班时间，开始今天的期待。</p>
+              <p id="statusText" class="status-text">可以添加旅行、生日、考试、发售日等未来节点。</p>
+            </div>
+          </div>
+
+          <div class="record-list-card">
+            <div class="record-list-head">
+              <p class="record-list-title">已添加倒计时</p>
+              <span id="countdownListSummary" class="record-list-summary">0 条</span>
+            </div>
+
+            <div id="countdownList" class="record-list is-empty" aria-live="polite">
+              <article class="record-empty-state">
+                <p class="record-empty-title">倒计时列表还是空的</p>
+                <p class="record-empty-text">先添加一个未来目标，主卡片就会实时显示它的剩余时间。</p>
+              </article>
             </div>
           </div>
 
           <div class="action-row">
-            <button id="openEditorBtn" class="primary-btn" type="button">设置下班时间</button>
-            <button id="resetBtn" class="ghost-btn" type="button">清除设置</button>
+            <button id="openEditorBtn" class="primary-btn" type="button">添加倒计时</button>
+            <button id="resetBtn" class="ghost-btn" type="button">清空倒计时</button>
           </div>
         </div>
 
@@ -120,9 +145,23 @@
             </div>
           </div>
 
+          <div class="record-list-card">
+            <div class="record-list-head">
+              <p class="record-list-title">已添加纪念日</p>
+              <span id="anniversaryListSummary" class="record-list-summary">0 条</span>
+            </div>
+
+            <div id="anniversaryList" class="record-list is-empty" aria-live="polite">
+              <article class="record-empty-state">
+                <p class="record-empty-title">纪念日列表还没有开始</p>
+                <p class="record-empty-text">添加多个重要时刻后，可以随时切换当前展示的那一条。</p>
+              </article>
+            </div>
+          </div>
+
           <div class="action-row">
-            <button id="openAnniversaryBtn" class="primary-btn" type="button">设置纪念日</button>
-            <button id="resetAnniversaryBtn" class="ghost-btn" type="button">清除设置</button>
+            <button id="openAnniversaryBtn" class="primary-btn" type="button">添加纪念日</button>
+            <button id="resetAnniversaryBtn" class="ghost-btn" type="button">清空纪念日</button>
           </div>
         </div>
 
@@ -210,25 +249,18 @@
 
         <div id="countdownEditor" class="editor-mode">
           <div class="editor-body">
-            <label class="time-input-wrap" for="workStartTime">
-              <span>上班时间</span>
-              <input id="workStartTime" type="time" step="60" />
-              <small class="field-hint">不填写时默认按 09:00 开始计算工作进度。</small>
+            <label class="time-input-wrap" for="countdownName">
+              <span>倒计时名称</span>
+              <input id="countdownName" type="text" maxlength="24" placeholder="例如：旅行出发" />
             </label>
 
-            <label class="time-input-wrap" for="workEndTime">
-              <span>下班时间</span>
-              <input id="workEndTime" type="time" step="60" />
+            <label class="time-input-wrap" for="countdownTarget">
+              <span>目标时间</span>
+              <input id="countdownTarget" type="datetime-local" />
+              <small class="field-hint">支持连续添加多条倒计时，适合生日、考试、出发日或任何未来节点。</small>
             </label>
 
-            <div class="quick-actions" aria-label="快捷时间">
-              <button class="quick-btn" type="button" data-time="17:30">17:30</button>
-              <button class="quick-btn" type="button" data-time="18:00">18:00</button>
-              <button class="quick-btn" type="button" data-time="18:30">18:30</button>
-              <button class="quick-btn" type="button" data-time="19:00">19:00</button>
-            </div>
-
-            <button id="saveBtn" class="save-btn" type="button">开始倒计时</button>
+            <button id="saveBtn" class="save-btn" type="button">添加到倒计时列表</button>
           </div>
         </div>
 
@@ -259,7 +291,7 @@
             <div class="image-upload-card">
               <div class="image-upload-head">
                 <span>背景图片</span>
-                <small class="field-hint">支持常见图片格式，保存后会保留在当前浏览器。</small>
+                <small class="field-hint">支持常见图片格式，图片会跟随这次新增的纪念日一起保存。</small>
               </div>
 
               <div id="anniversaryImagePreview" class="anniversary-image-preview" aria-hidden="true">
@@ -272,10 +304,10 @@
               </div>
 
               <input id="anniversaryImageInput" type="file" accept="image/*" hidden />
-              <p id="anniversaryImageHint" class="field-hint">未设置背景图时，会使用默认纪念日卡片样式。</p>
+              <p id="anniversaryImageHint" class="field-hint">可选，不上传时会使用默认纪念日卡片样式。</p>
             </div>
 
-            <button id="saveAnniversaryBtn" class="save-btn" type="button">开始记录</button>
+            <button id="saveAnniversaryBtn" class="save-btn" type="button">添加到纪念日列表</button>
           </div>
         </div>
 
