@@ -1,5 +1,6 @@
 const STORAGE_KEY = "clock-out-countdown-time";
 const START_STORAGE_KEY = "clock-in-start-time";
+const COUNTDOWN_DRAFT_STORAGE_KEY = "clock-out-countdown-draft";
 
 const hoursEl = document.querySelector("#hours");
 const minutesEl = document.querySelector("#minutes");
@@ -69,6 +70,21 @@ function setDailyQuote() {
 
 function pad(value) {
   return String(value).padStart(2, "0");
+}
+
+function normalizeTimeValue(value) {
+  if (typeof value !== "string") return "";
+  const match = value.match(/^(\d{2}):(\d{2})$/);
+  if (!match) return "";
+
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+
+  if (hours > 23 || minutes > 59) {
+    return "";
+  }
+
+  return `${pad(hours)}:${pad(minutes)}`;
 }
 
 function formatTime(date) {
@@ -186,17 +202,61 @@ function persistStartTime(timeValue) {
   localStorage.setItem(START_STORAGE_KEY, timeValue);
 }
 
+function persistCountdownDraft(startTime = workStartTimeEl.value, endTime = timeInputEl.value) {
+  if (!startTime && !endTime) {
+    localStorage.removeItem(COUNTDOWN_DRAFT_STORAGE_KEY);
+    return;
+  }
+
+  localStorage.setItem(
+    COUNTDOWN_DRAFT_STORAGE_KEY,
+    JSON.stringify({
+      startTime,
+      endTime,
+    })
+  );
+}
+
+function readCountdownDraft() {
+  const rawDraft = localStorage.getItem(COUNTDOWN_DRAFT_STORAGE_KEY);
+
+  if (!rawDraft) {
+    return {
+      startTime: "",
+      endTime: "",
+    };
+  }
+
+  try {
+    const parsedDraft = JSON.parse(rawDraft);
+    return {
+      startTime: normalizeTimeValue(parsedDraft.startTime),
+      endTime: normalizeTimeValue(parsedDraft.endTime),
+    };
+  } catch {
+    localStorage.removeItem(COUNTDOWN_DRAFT_STORAGE_KEY);
+    return {
+      startTime: "",
+      endTime: "",
+    };
+  }
+}
+
 function clearTime() {
   localStorage.removeItem(STORAGE_KEY);
   localStorage.removeItem(START_STORAGE_KEY);
+  localStorage.removeItem(COUNTDOWN_DRAFT_STORAGE_KEY);
 }
 
-function startCountdown(timeValue) {
+function startCountdown(timeValue, startTimeValue = workStartTimeEl.value) {
   const now = new Date();
   targetTime = buildTargetDate(timeValue);
-  workStartTimeValue = workStartTimeEl.value;
+  workStartTimeValue = startTimeValue;
+  workStartTimeEl.value = startTimeValue;
+  timeInputEl.value = timeValue;
   persistTime(timeValue);
   persistStartTime(workStartTimeValue);
+  persistCountdownDraft(workStartTimeValue, timeValue);
   syncQuickButtons(timeValue);
 
   const targetLabel = targetTime.getDate() === now.getDate() ? "今天" : "明天";
@@ -269,7 +329,7 @@ function handleSave() {
     return;
   }
 
-  startCountdown(timeValue);
+  startCountdown(timeValue, startValue);
   tick();
 }
 
@@ -281,28 +341,38 @@ openEditorBtnEl.addEventListener("click", () => {
 saveBtnEl.addEventListener("click", handleSave);
 resetBtnEl.addEventListener("click", resetCountdown);
 
+workStartTimeEl.addEventListener("input", () => {
+  persistCountdownDraft();
+});
+
 timeInputEl.addEventListener("input", (event) => {
   syncQuickButtons(event.target.value);
+  persistCountdownDraft();
 });
 
 quickBtnEls.forEach((button) => {
   button.addEventListener("click", () => {
     timeInputEl.value = button.dataset.time;
     syncQuickButtons(button.dataset.time);
+    persistCountdownDraft();
   });
 });
 
-const savedTime = localStorage.getItem(STORAGE_KEY);
-const savedStartTime = localStorage.getItem(START_STORAGE_KEY);
-
-if (savedStartTime) {
-  workStartTimeValue = savedStartTime;
-  workStartTimeEl.value = savedStartTime;
-}
+const savedTime = normalizeTimeValue(localStorage.getItem(STORAGE_KEY));
+const savedStartTime = normalizeTimeValue(localStorage.getItem(START_STORAGE_KEY));
+const countdownDraft = readCountdownDraft();
 
 if (savedTime) {
-  timeInputEl.value = savedTime;
-  startCountdown(savedTime);
+  startCountdown(savedTime, savedStartTime);
+} else {
+  if (countdownDraft.startTime) {
+    workStartTimeEl.value = countdownDraft.startTime;
+  }
+
+  if (countdownDraft.endTime) {
+    timeInputEl.value = countdownDraft.endTime;
+    syncQuickButtons(countdownDraft.endTime);
+  }
 }
 
 setDailyQuote();
