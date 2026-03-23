@@ -147,6 +147,32 @@
               </article>
             </div>
 
+            <div class="life-filter-card">
+              <div class="life-filter-head">
+                <p class="life-filter-title">搜索与筛选</p>
+                <button id="clearLifeFiltersBtn" class="quick-btn" type="button">清空筛选</button>
+              </div>
+
+              <div class="life-filter-grid">
+                <label class="time-input-wrap" for="lifeSearchInput">
+                  <span>关键词</span>
+                  <input id="lifeSearchInput" type="search" placeholder="搜索标题、备注或文件名" />
+                </label>
+
+                <label class="time-input-wrap" for="lifeStartDateFilter">
+                  <span>开始日期</span>
+                  <input id="lifeStartDateFilter" type="date" />
+                </label>
+
+                <label class="time-input-wrap" for="lifeEndDateFilter">
+                  <span>结束日期</span>
+                  <input id="lifeEndDateFilter" type="date" />
+                </label>
+              </div>
+
+              <p id="lifeFilterSummaryText" class="life-filter-summary">当前显示全部记录。</p>
+            </div>
+
             <div class="divider-line" aria-hidden="true"></div>
 
             <p class="mood-line">把生活里的闪光时刻，沿着一条线认真收藏</p>
@@ -310,8 +336,58 @@
             </div>
           </div>
         </div>
+
+        <section class="data-tools-card" aria-labelledby="dataToolsTitle">
+          <div class="data-tools-head">
+            <p class="card-tag">数据工具</p>
+            <h3 id="dataToolsTitle" class="data-tools-title">备份你的时间记录</h3>
+          </div>
+
+          <p class="data-tools-text">
+            可以把倒计时、纪念日和点滴生活一起导出成备份文件，也可以在新的浏览器里重新导入。
+          </p>
+
+          <div class="image-upload-actions">
+            <button id="exportDataBtn" class="save-btn" type="button">导出数据</button>
+            <button id="importDataBtn" class="ghost-btn" type="button">导入数据</button>
+          </div>
+
+          <input id="importDataInput" type="file" accept="application/json,.json" hidden />
+          <p id="dataToolsHint" class="field-hint">导出会包含当前浏览器里保存的图片和文字记录。</p>
+        </section>
       </section>
     </main>
+
+    <div id="lifeLightbox" class="life-lightbox is-hidden" aria-hidden="true">
+      <div class="life-lightbox-backdrop" data-close-lightbox="true"></div>
+      <div class="life-lightbox-dialog" role="dialog" aria-modal="true" aria-labelledby="lifeLightboxTitle">
+        <button id="closeLifeLightboxBtn" class="life-lightbox-close" type="button" aria-label="关闭大图预览">
+          关闭
+        </button>
+
+        <div class="life-lightbox-media-wrap">
+          <button id="prevLifeLightboxBtn" class="life-lightbox-nav life-lightbox-prev" type="button" aria-label="查看上一张">
+            上一张
+          </button>
+
+          <div class="life-lightbox-media">
+            <img id="lifeLightboxImage" class="life-lightbox-image" alt="点滴生活大图预览" />
+          </div>
+
+          <button id="nextLifeLightboxBtn" class="life-lightbox-nav life-lightbox-next" type="button" aria-label="查看下一张">
+            下一张
+          </button>
+        </div>
+
+        <div class="life-lightbox-meta">
+          <p id="lifeLightboxCounter" class="life-lightbox-counter">第 0 张</p>
+          <h3 id="lifeLightboxTitle" class="life-lightbox-title">生活照片预览</h3>
+          <p id="lifeLightboxTime" class="life-lightbox-time">上传时间</p>
+          <p id="lifeLightboxNote" class="life-lightbox-note">这里会显示这张照片的备注。</p>
+          <p id="lifeLightboxFile" class="life-lightbox-file">原图文件名</p>
+        </div>
+      </div>
+    </div>
 
     <script src="./script.js"></script>
   </body>

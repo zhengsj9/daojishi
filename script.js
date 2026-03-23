@@ -62,6 +62,11 @@ const lifeHeadlineEl = document.querySelector("#lifeHeadline");
 const lifeSummaryTextEl = document.querySelector("#lifeSummaryText");
 const lifeCountTextEl = document.querySelector("#lifeCountText");
 const lifeLatestTextEl = document.querySelector("#lifeLatestText");
+const lifeSearchInputEl = document.querySelector("#lifeSearchInput");
+const lifeStartDateFilterEl = document.querySelector("#lifeStartDateFilter");
+const lifeEndDateFilterEl = document.querySelector("#lifeEndDateFilter");
+const clearLifeFiltersBtnEl = document.querySelector("#clearLifeFiltersBtn");
+const lifeFilterSummaryTextEl = document.querySelector("#lifeFilterSummaryText");
 const lifeTimelineEl = document.querySelector("#lifeTimeline");
 const openLifeUploaderBtnEl = document.querySelector("#openLifeUploaderBtn");
 const resetLifeBtnEl = document.querySelector("#resetLifeBtn");
@@ -75,6 +80,20 @@ const lifeEditorLatestTextEl = document.querySelector("#lifeEditorLatestText");
 const lifeDropzoneEl = document.querySelector("#lifeDropzone");
 const lifeTitleEl = document.querySelector("#lifeTitle");
 const lifeNoteEl = document.querySelector("#lifeNote");
+const exportDataBtnEl = document.querySelector("#exportDataBtn");
+const importDataBtnEl = document.querySelector("#importDataBtn");
+const importDataInputEl = document.querySelector("#importDataInput");
+const dataToolsHintEl = document.querySelector("#dataToolsHint");
+const lifeLightboxEl = document.querySelector("#lifeLightbox");
+const closeLifeLightboxBtnEl = document.querySelector("#closeLifeLightboxBtn");
+const prevLifeLightboxBtnEl = document.querySelector("#prevLifeLightboxBtn");
+const nextLifeLightboxBtnEl = document.querySelector("#nextLifeLightboxBtn");
+const lifeLightboxImageEl = document.querySelector("#lifeLightboxImage");
+const lifeLightboxCounterEl = document.querySelector("#lifeLightboxCounter");
+const lifeLightboxTitleEl = document.querySelector("#lifeLightboxTitle");
+const lifeLightboxTimeEl = document.querySelector("#lifeLightboxTime");
+const lifeLightboxNoteEl = document.querySelector("#lifeLightboxNote");
+const lifeLightboxFileEl = document.querySelector("#lifeLightboxFile");
 
 const WORKDAY_START_HOUR = 9;
 const WORKDAY_START_MINUTE = 0;
@@ -84,6 +103,14 @@ const ANNIVERSARY_IMAGE_STORE_NAME = "images";
 const ANNIVERSARY_IMAGE_KEY = "anniversary-background";
 const LIFE_PHOTO_STORE_NAME = "life-photos";
 const MAX_IMAGE_SIZE = 8 * 1024 * 1024;
+const BACKUP_KIND = "time-menu-backup";
+const BACKUP_VERSION = 1;
+const BACKUP_STORAGE_KEYS = [
+  STORAGE_KEY,
+  START_STORAGE_KEY,
+  COUNTDOWN_DRAFT_STORAGE_KEY,
+  ANNIVERSARY_STORAGE_KEY,
+];
 const DAILY_QUOTES = [
   {
     text: "真正的从容，不是赶时间，而是知道自己要去哪里。",
@@ -116,6 +143,8 @@ let anniversaryImageUrl = "";
 let lifeRecords = [];
 let lifePhotoUrls = [];
 let lifeEditingId = "";
+let lifePreviewId = "";
+let lifePreviewImageUrl = "";
 
 function pad(value) {
   return String(value).padStart(2, "0");
@@ -151,6 +180,55 @@ function formatDayGroupLabel(dateKey) {
   const [year, month, day] = dateKey.split("-").map(Number);
   const weekdayText = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"][new Date(year, month - 1, day).getDay()];
   return `${year}.${pad(month)}.${pad(day)} ${weekdayText}`;
+}
+
+function formatBackupStamp(date = new Date()) {
+  return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}-${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`;
+}
+
+function blobToDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(reader.error || new Error("Failed to read blob"));
+    reader.readAsDataURL(blob);
+  });
+}
+
+function dataUrlToBlob(dataUrl) {
+  if (typeof dataUrl !== "string" || !dataUrl.startsWith("data:")) {
+    throw new Error("Invalid data URL");
+  }
+
+  const [header, body] = dataUrl.split(",");
+  if (!header || body === undefined) {
+    throw new Error("Invalid data URL");
+  }
+
+  const mimeMatch = header.match(/^data:(.*?)(;base64)?$/);
+  const mimeType = mimeMatch?.[1] || "application/octet-stream";
+
+  if (header.includes(";base64")) {
+    const binary = atob(body);
+    const bytes = new Uint8Array(binary.length);
+
+    for (let index = 0; index < binary.length; index += 1) {
+      bytes[index] = binary.charCodeAt(index);
+    }
+
+    return new Blob([bytes], { type: mimeType });
+  }
+
+  return new Blob([decodeURIComponent(body)], { type: mimeType });
+}
+
+function readFileAsText(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(reader.error || new Error("Failed to read file"));
+    reader.readAsText(file);
+  });
 }
 
 function updateCurrentTime() {
@@ -322,6 +400,15 @@ function setLifeUploadHint(message) {
   lifeUploadHintEl.textContent = message;
 }
 
+function setDataToolsHint(message) {
+  dataToolsHintEl.textContent = message;
+}
+
+function setDataToolsBusy(isBusy) {
+  exportDataBtnEl.disabled = isBusy;
+  importDataBtnEl.disabled = isBusy;
+}
+
 function revokeAnniversaryImageUrl() {
   if (!anniversaryImageUrl) return;
   URL.revokeObjectURL(anniversaryImageUrl);
@@ -331,6 +418,12 @@ function revokeAnniversaryImageUrl() {
 function revokeLifePhotoUrls() {
   lifePhotoUrls.forEach((url) => URL.revokeObjectURL(url));
   lifePhotoUrls = [];
+}
+
+function revokeLifePreviewImageUrl() {
+  if (!lifePreviewImageUrl) return;
+  URL.revokeObjectURL(lifePreviewImageUrl);
+  lifePreviewImageUrl = "";
 }
 
 function applyAnniversaryImage(record) {
@@ -409,12 +502,78 @@ function updateLifeComposerPreview() {
   lifeUploadPreviewTextEl.textContent = "每张照片都会带上上传时刻，像日记一样被串联起来。";
 }
 
+function normalizeDateInput(value) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : "";
+}
+
+function getLifeFilters() {
+  return {
+    query: lifeSearchInputEl.value.trim().toLowerCase(),
+    startDate: normalizeDateInput(lifeStartDateFilterEl.value),
+    endDate: normalizeDateInput(lifeEndDateFilterEl.value),
+  };
+}
+
+function hasActiveLifeFilters(filters = getLifeFilters()) {
+  return Boolean(filters.query || filters.startDate || filters.endDate);
+}
+
+function hasInvalidLifeFilterRange(filters = getLifeFilters()) {
+  return Boolean(filters.startDate && filters.endDate && filters.startDate > filters.endDate);
+}
+
+function buildLifeSearchHaystack(record) {
+  const dateKey = getDateKey(record.uploadedAt);
+
+  return [
+    record.title,
+    record.note,
+    record.name,
+    formatTimestamp(record.uploadedAt),
+    dateKey,
+    formatDayGroupLabel(dateKey),
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+}
+
+function getFilteredLifeRecords(filters = getLifeFilters()) {
+  if (hasInvalidLifeFilterRange(filters)) {
+    return [];
+  }
+
+  return lifeRecords.filter((record) => {
+    const recordDate = getDateKey(record.uploadedAt);
+
+    if (filters.startDate && recordDate < filters.startDate) return false;
+    if (filters.endDate && recordDate > filters.endDate) return false;
+    if (filters.query && !buildLifeSearchHaystack(record).includes(filters.query)) return false;
+
+    return true;
+  });
+}
+
+function resetLifeFilters(shouldRender = true) {
+  lifeSearchInputEl.value = "";
+  lifeStartDateFilterEl.value = "";
+  lifeEndDateFilterEl.value = "";
+
+  if (shouldRender) {
+    renderLifeTimeline();
+  }
+}
+
 function setLifeDropzoneActive(active) {
   lifeDropzoneEl.classList.toggle("is-dragover", active);
 }
 
 function getLifeRecordById(id) {
   return lifeRecords.find((record) => record.id === id) || null;
+}
+
+function getLifeRecordIndex(id, records = lifeRecords) {
+  return records.findIndex((record) => record.id === id);
 }
 
 function groupLifeRecordsByDay(records) {
@@ -447,21 +606,98 @@ function createLifePhotoId(seed, index) {
   return `life-${seed}-${index}-${Math.random().toString(16).slice(2, 10)}`;
 }
 
+function syncLifeLightbox() {
+  const previewRecords = getFilteredLifeRecords();
+  const previewIndex = getLifeRecordIndex(lifePreviewId, previewRecords);
+  const previewRecord = previewIndex >= 0 ? previewRecords[previewIndex] : null;
+
+  if (!previewRecord) {
+    closeLifeLightbox();
+    return;
+  }
+
+  revokeLifePreviewImageUrl();
+  lifePreviewImageUrl = URL.createObjectURL(previewRecord.blob);
+  lifeLightboxImageEl.src = lifePreviewImageUrl;
+  lifeLightboxImageEl.alt = previewRecord.title || previewRecord.name || "点滴生活大图预览";
+  lifeLightboxCounterEl.textContent = `第 ${pad(previewIndex + 1)} 张 / 共 ${previewRecords.length} 张`;
+  lifeLightboxTitleEl.textContent = previewRecord.title || previewRecord.name || "未命名照片";
+  lifeLightboxTimeEl.textContent = formatTimestamp(previewRecord.uploadedAt);
+  lifeLightboxNoteEl.textContent = previewRecord.note || "这张照片还没有备注。";
+  lifeLightboxFileEl.textContent = previewRecord.name ? `原图：${previewRecord.name}` : "原图名称未记录";
+  prevLifeLightboxBtnEl.disabled = previewIndex <= 0;
+  nextLifeLightboxBtnEl.disabled = previewIndex >= previewRecords.length - 1;
+}
+
+function openLifeLightbox(recordId) {
+  if (!getLifeRecordById(recordId)) return;
+
+  lifePreviewId = recordId;
+  lifeLightboxEl.classList.remove("is-hidden");
+  lifeLightboxEl.setAttribute("aria-hidden", "false");
+  document.body.classList.add("is-modal-open");
+  syncLifeLightbox();
+  closeLifeLightboxBtnEl.focus();
+}
+
+function closeLifeLightbox() {
+  lifePreviewId = "";
+  revokeLifePreviewImageUrl();
+  lifeLightboxImageEl.removeAttribute("src");
+  lifeLightboxEl.classList.add("is-hidden");
+  lifeLightboxEl.setAttribute("aria-hidden", "true");
+  document.body.classList.remove("is-modal-open");
+}
+
+function moveLifeLightbox(direction) {
+  if (!lifePreviewId) return;
+
+  const previewRecords = getFilteredLifeRecords();
+  const currentIndex = getLifeRecordIndex(lifePreviewId, previewRecords);
+  if (currentIndex < 0) {
+    closeLifeLightbox();
+    return;
+  }
+
+  const nextRecord = previewRecords[currentIndex + direction];
+  if (!nextRecord) return;
+
+  lifePreviewId = nextRecord.id;
+  syncLifeLightbox();
+}
+
 function renderLifeTimeline() {
   revokeLifePhotoUrls();
 
-  const latestRecord = lifeRecords.length ? lifeRecords[lifeRecords.length - 1] : null;
-  const latestText = latestRecord ? formatTimestamp(latestRecord.uploadedAt) : "等待记录";
+  const filters = getLifeFilters();
+  const activeFilters = hasActiveLifeFilters(filters);
+  const invalidRange = hasInvalidLifeFilterRange(filters);
+  const filteredRecords = getFilteredLifeRecords(filters);
+  const latestOverallRecord = lifeRecords.length ? lifeRecords[lifeRecords.length - 1] : null;
+  const latestVisibleRecord = filteredRecords.length ? filteredRecords[filteredRecords.length - 1] : null;
 
-  lifeCountTextEl.textContent = `${lifeRecords.length} 张`;
-  lifeLatestTextEl.textContent = latestText;
+  if (lifePreviewId) {
+    if (getLifeRecordIndex(lifePreviewId, filteredRecords) < 0) {
+      closeLifeLightbox();
+    } else {
+      syncLifeLightbox();
+    }
+  }
+
+  lifeCountTextEl.textContent = activeFilters ? `${filteredRecords.length} / ${lifeRecords.length} 张` : `${lifeRecords.length} 张`;
+  lifeLatestTextEl.textContent = latestVisibleRecord
+    ? formatTimestamp(latestVisibleRecord.uploadedAt)
+    : activeFilters
+      ? "无匹配结果"
+      : "等待记录";
   lifeEditorCountEl.textContent = `${lifeRecords.length} 张`;
-  lifeEditorLatestTextEl.textContent = latestText;
+  lifeEditorLatestTextEl.textContent = latestOverallRecord ? formatTimestamp(latestOverallRecord.uploadedAt) : "等待上传";
+  clearLifeFiltersBtnEl.disabled = !activeFilters;
 
   if (!lifeRecords.length) {
     lifeHeadlineEl.textContent = "还没有生活照片";
     lifeSummaryTextEl.textContent = "上传照片后，系统会自动记录上传时间，并沿着时间线把日常慢慢串起来。";
-    lifeUploadPreviewTextEl.textContent = "每张照片都会带上上传时刻，像日记一样被串联起来。";
+    lifeFilterSummaryTextEl.textContent = "上传后可按标题、备注或日期来查找记录。";
     lifeTimelineEl.classList.add("is-empty");
     lifeTimelineEl.innerHTML = `
       <article class="life-empty-state">
@@ -469,22 +705,49 @@ function renderLifeTimeline() {
         <p class="life-empty-text">选一张喜欢的照片，上传的那一刻就会成为这条生活线上的新节点。</p>
       </article>
     `;
+    updateLifeComposerPreview();
     return;
   }
 
-  lifeHeadlineEl.textContent = `已经串起 ${lifeRecords.length} 张生活照片`;
-  lifeSummaryTextEl.textContent = `最近一次上传在 ${latestText}，下一张会继续接在这条线后面。`;
-  lifeUploadPreviewTextEl.textContent =
-    lifeRecords.length === 1
-      ? "第一张照片已经落位，接下来每一次上传都会接在这条线上。"
-      : `时间线已经记录到 ${latestText}。`;
+  if (invalidRange) {
+    lifeHeadlineEl.textContent = "日期范围需要重新调整";
+    lifeSummaryTextEl.textContent = "开始日期需要早于结束日期，调整后时间线会重新显示匹配结果。";
+    lifeFilterSummaryTextEl.textContent = "当前日期范围无效，请检查开始日期和结束日期。";
+  } else if (activeFilters) {
+    if (filteredRecords.length) {
+      lifeHeadlineEl.textContent = `筛选到 ${filteredRecords.length} 张生活照片`;
+      lifeSummaryTextEl.textContent = `当前条件下最近一张上传于 ${formatTimestamp(filteredRecords[filteredRecords.length - 1].uploadedAt)}。`;
+      lifeFilterSummaryTextEl.textContent = `当前筛选到 ${filteredRecords.length} / ${lifeRecords.length} 张记录。`;
+    } else {
+      lifeHeadlineEl.textContent = "没有找到匹配的生活照片";
+      lifeSummaryTextEl.textContent = "可以换一个关键词，或放宽日期范围再试试。";
+      lifeFilterSummaryTextEl.textContent = `当前筛选没有命中记录，总共保存了 ${lifeRecords.length} 张照片。`;
+    }
+  } else {
+    const latestText = latestOverallRecord ? formatTimestamp(latestOverallRecord.uploadedAt) : "等待记录";
+    lifeHeadlineEl.textContent = `已经串起 ${lifeRecords.length} 张生活照片`;
+    lifeSummaryTextEl.textContent = `最近一次上传在 ${latestText}，下一张会继续接在这条线后面。`;
+    lifeFilterSummaryTextEl.textContent = `当前显示全部 ${lifeRecords.length} 张记录。`;
+  }
 
   lifeTimelineEl.classList.remove("is-empty");
   lifeTimelineEl.innerHTML = "";
 
   const fragment = document.createDocumentFragment();
   let entryNumber = 0;
-  const groupedRecords = groupLifeRecordsByDay(lifeRecords);
+  const groupedRecords = groupLifeRecordsByDay(filteredRecords);
+
+  if (!groupedRecords.length) {
+    lifeTimelineEl.classList.add("is-empty");
+    lifeTimelineEl.innerHTML = `
+      <article class="life-empty-state">
+        <p class="life-empty-title">${invalidRange ? "日期范围无效" : "没有找到匹配结果"}</p>
+        <p class="life-empty-text">${invalidRange ? "把开始日期调整到结束日期之前，时间线就会重新显示。" : "试试更短的关键词，或者清空筛选后查看全部记录。"}</p>
+      </article>
+    `;
+    updateLifeComposerPreview();
+    return;
+  }
 
   groupedRecords.forEach((group) => {
     const groupEl = document.createElement("section");
@@ -529,13 +792,15 @@ function renderLifeTimeline() {
       const cardEl = document.createElement("div");
       cardEl.className = "life-entry-card";
 
-      const imageWrapEl = document.createElement("div");
-      imageWrapEl.className = "life-entry-image-wrap";
-
       const imageEl = document.createElement("img");
       imageEl.className = "life-entry-image";
       imageEl.loading = "lazy";
       const displayName = record.title || record.name;
+      const imageWrapEl = document.createElement("button");
+      imageWrapEl.className = "life-entry-image-wrap life-entry-preview";
+      imageWrapEl.type = "button";
+      imageWrapEl.dataset.id = record.id;
+      imageWrapEl.setAttribute("aria-label", `查看${displayName || `第 ${entryNumber} 张`}大图`);
       imageEl.alt = displayName ? `点滴生活照片：${displayName}` : `点滴生活照片 ${entryNumber}`;
 
       const imageUrl = URL.createObjectURL(record.blob);
@@ -657,6 +922,7 @@ function renderLifeTimeline() {
   });
 
   lifeTimelineEl.appendChild(fragment);
+  updateLifeComposerPreview();
 }
 
 function applyLifeRecords(records) {
@@ -669,10 +935,18 @@ function applyLifeRecords(records) {
     lifeEditingId = "";
   }
 
+  if (lifePreviewId && !lifeRecords.some((record) => record.id === lifePreviewId)) {
+    closeLifeLightbox();
+  }
+
   renderLifeTimeline();
 
   if (currentMode === "life") {
     insightTextEl.textContent = getLifeInsightMessage();
+  }
+
+  if (lifePreviewId) {
+    syncLifeLightbox();
   }
 }
 
@@ -778,6 +1052,48 @@ async function removeAnniversaryImage() {
     transaction.onabort = () => {
       db.close();
       reject(transaction.error || new Error("Failed to delete anniversary image"));
+    };
+  });
+}
+
+async function writeAnniversaryImageRecord(record) {
+  const db = await openMediaDb();
+
+  if (!db) {
+    if (record) {
+      throw new Error("IndexedDB is not supported");
+    }
+    return;
+  }
+
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(ANNIVERSARY_IMAGE_STORE_NAME, "readwrite");
+    const store = transaction.objectStore(ANNIVERSARY_IMAGE_STORE_NAME);
+
+    if (record?.blob) {
+      store.put(
+        {
+          blob: record.blob,
+          name: record.name || "",
+          updatedAt: Number.isFinite(record.updatedAt) ? record.updatedAt : Date.now(),
+        },
+        ANNIVERSARY_IMAGE_KEY
+      );
+    } else {
+      store.delete(ANNIVERSARY_IMAGE_KEY);
+    }
+
+    transaction.oncomplete = () => {
+      db.close();
+      resolve();
+    };
+    transaction.onerror = () => {
+      db.close();
+      reject(transaction.error || new Error("Failed to write anniversary image"));
+    };
+    transaction.onabort = () => {
+      db.close();
+      reject(transaction.error || new Error("Failed to write anniversary image"));
     };
   });
 }
@@ -940,10 +1256,225 @@ async function clearLifePhotos() {
   });
 }
 
+async function replaceLifePhotoRecords(records) {
+  const db = await openMediaDb();
+
+  if (!db) {
+    if (records.length) {
+      throw new Error("IndexedDB is not supported");
+    }
+    return;
+  }
+
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(LIFE_PHOTO_STORE_NAME, "readwrite");
+    const store = transaction.objectStore(LIFE_PHOTO_STORE_NAME);
+    store.clear();
+
+    records.forEach((record) => {
+      store.put({
+        id: String(record.id),
+        blob: record.blob,
+        name: record.name || "",
+        title: record.title || "",
+        note: record.note || "",
+        uploadedAt: Number(record.uploadedAt) || Date.now(),
+      });
+    });
+
+    transaction.oncomplete = () => {
+      db.close();
+      resolve();
+    };
+    transaction.onerror = () => {
+      db.close();
+      reject(transaction.error || new Error("Failed to replace life photos"));
+    };
+    transaction.onabort = () => {
+      db.close();
+      reject(transaction.error || new Error("Failed to replace life photos"));
+    };
+  });
+}
+
 async function loadLifePhotos() {
   const records = await readLifePhotos();
   applyLifeRecords(records);
   return records;
+}
+
+function applyCountdownIdleState(draft = readCountdownDraft()) {
+  targetTime = null;
+  workStartTimeValue = "";
+  workStartTimeEl.value = draft.startTime || "";
+  timeInputEl.value = draft.endTime || "";
+  syncQuickButtons(draft.endTime || "");
+  setDisplay(0, 0, 0);
+  setStatus("先设置一个下班时间，开始今天的期待。");
+  setProgress(0, "尚未开始");
+
+  if (currentMode === "countdown") {
+    insightTextEl.textContent = "设一个明确的下班时间，会让今天更有终点感。";
+  }
+}
+
+function applyAnniversaryIdleState() {
+  anniversaryRecord = null;
+  setAnniversaryType("生日");
+  anniversaryNameEl.value = "";
+  anniversaryDateEl.value = "";
+  anniversaryTypeTextEl.textContent = "纪念日";
+  anniversaryNameTextEl.textContent = "还没有设置纪念日";
+  anniversaryDateTextEl.textContent = "输入一个重要日期，开始记录它。";
+  anniversaryDaysEl.textContent = "0";
+  anniversaryDaysLabelEl.textContent = "已经走过";
+  anniversaryStatusTextEl.textContent = "可以记录生日、恋爱纪念日、入职日或任何重要时刻。";
+
+  if (currentMode === "anniversary") {
+    insightTextEl.textContent = "可以先选择纪念类型，再填名称和日期开始记录。";
+  }
+}
+
+async function refreshAppState() {
+  const savedTime = normalizeTimeValue(localStorage.getItem(STORAGE_KEY));
+  const savedStartTime = normalizeTimeValue(localStorage.getItem(START_STORAGE_KEY));
+  const countdownDraft = readCountdownDraft();
+  const savedAnniversary = readSavedAnniversary();
+
+  if (savedTime) {
+    startCountdown(savedTime, savedStartTime);
+  } else {
+    applyCountdownIdleState(countdownDraft);
+  }
+
+  if (savedAnniversary) {
+    setAnniversaryType(savedAnniversary.type);
+    anniversaryNameEl.value = savedAnniversary.name;
+    anniversaryDateEl.value = savedAnniversary.date;
+    startAnniversary(savedAnniversary);
+  } else {
+    applyAnniversaryIdleState();
+  }
+
+  applyAnniversaryImage(null);
+
+  try {
+    const savedImage = await readAnniversaryImage();
+    if (savedImage?.blob) {
+      applyAnniversaryImage(savedImage);
+    }
+  } catch {
+    setAnniversaryImageHint("背景图读取失败了，可以重新选择一张图片。");
+  }
+
+  lifeEditingId = "";
+  resetLifeFilters(false);
+  setLifeDropzoneActive(false);
+  lifeTitleEl.value = "";
+  lifeNoteEl.value = "";
+  updateLifeComposerPreview();
+
+  try {
+    await loadLifePhotos();
+  } catch {
+    setLifeUploadHint("生活照片读取失败了，可以重新上传一张图片。");
+
+    if (currentMode === "life") {
+      insightTextEl.textContent = "当前浏览器里的生活时间线读取失败了，可以重新上传照片开始记录。";
+    }
+  }
+}
+
+async function buildBackupPayload() {
+  const anniversaryImageRecord = await readAnniversaryImage();
+  const lifePhotoRecords = await readLifePhotos();
+
+  return {
+    kind: BACKUP_KIND,
+    version: BACKUP_VERSION,
+    exportedAt: new Date().toISOString(),
+    localStorage: Object.fromEntries(BACKUP_STORAGE_KEYS.map((key) => [key, localStorage.getItem(key)])),
+    media: {
+      anniversaryImage: anniversaryImageRecord?.blob
+        ? {
+            name: anniversaryImageRecord.name || "",
+            updatedAt: Number.isFinite(anniversaryImageRecord.updatedAt) ? anniversaryImageRecord.updatedAt : Date.now(),
+            dataUrl: await blobToDataUrl(anniversaryImageRecord.blob),
+          }
+        : null,
+      lifePhotos: await Promise.all(
+        lifePhotoRecords.map(async (record) => ({
+          id: String(record.id),
+          name: record.name || "",
+          title: record.title || "",
+          note: record.note || "",
+          uploadedAt: Number(record.uploadedAt) || Date.now(),
+          dataUrl: await blobToDataUrl(record.blob),
+        }))
+      ),
+    },
+  };
+}
+
+function validateBackupPayload(payload) {
+  if (!payload || typeof payload !== "object") {
+    throw new Error("备份文件内容无效。");
+  }
+
+  if (payload.kind !== BACKUP_KIND) {
+    throw new Error("这不是当前应用的备份文件。");
+  }
+
+  if (payload.version !== BACKUP_VERSION) {
+    throw new Error("备份文件版本暂不兼容。");
+  }
+
+  if (!payload.localStorage || typeof payload.localStorage !== "object") {
+    throw new Error("备份文件缺少本地配置数据。");
+  }
+
+  if (!payload.media || typeof payload.media !== "object") {
+    throw new Error("备份文件缺少媒体数据。");
+  }
+
+  return payload;
+}
+
+async function restoreBackupPayload(payload) {
+  const backupPayload = validateBackupPayload(payload);
+
+  BACKUP_STORAGE_KEYS.forEach((key) => {
+    const value = backupPayload.localStorage[key];
+
+    if (typeof value === "string") {
+      localStorage.setItem(key, value);
+      return;
+    }
+
+    localStorage.removeItem(key);
+  });
+
+  const anniversaryImage = backupPayload.media.anniversaryImage
+    ? {
+        blob: dataUrlToBlob(backupPayload.media.anniversaryImage.dataUrl),
+        name: backupPayload.media.anniversaryImage.name || "",
+        updatedAt: Number(backupPayload.media.anniversaryImage.updatedAt) || Date.now(),
+      }
+    : null;
+
+  const lifePhotoRecords = Array.isArray(backupPayload.media.lifePhotos)
+    ? backupPayload.media.lifePhotos.map((record) => ({
+        id: String(record.id),
+        blob: dataUrlToBlob(record.dataUrl),
+        name: record.name || "",
+        title: record.title || "",
+        note: record.note || "",
+        uploadedAt: Number(record.uploadedAt) || Date.now(),
+      }))
+    : [];
+
+  await writeAnniversaryImageRecord(anniversaryImage);
+  await replaceLifePhotoRecords(lifePhotoRecords);
 }
 
 function collectLifeFiles(files) {
@@ -1298,6 +1829,66 @@ async function handleClearAnniversaryImage() {
   }
 }
 
+async function handleExportData() {
+  setDataToolsBusy(true);
+  setDataToolsHint("正在准备备份文件...");
+
+  try {
+    const payload = await buildBackupPayload();
+    const backupBlob = new Blob([JSON.stringify(payload, null, 2)], {
+      type: "application/json",
+    });
+    const downloadUrl = URL.createObjectURL(backupBlob);
+    const link = document.createElement("a");
+    const lifePhotoCount = Array.isArray(payload.media.lifePhotos) ? payload.media.lifePhotos.length : 0;
+
+    link.href = downloadUrl;
+    link.download = `time-menu-backup-${formatBackupStamp()}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    window.setTimeout(() => {
+      URL.revokeObjectURL(downloadUrl);
+    }, 0);
+
+    setDataToolsHint(`备份文件已下载，包含 ${lifePhotoCount} 张生活照片和当前设置。`);
+  } catch {
+    setDataToolsHint("导出失败了，可以稍后再试一次。");
+  } finally {
+    setDataToolsBusy(false);
+  }
+}
+
+async function handleImportDataChange(event) {
+  const [file] = event.target.files || [];
+  event.target.value = "";
+
+  if (!file) return;
+
+  setDataToolsBusy(true);
+  setDataToolsHint("正在导入备份文件...");
+
+  const modeBeforeImport = currentMode;
+
+  try {
+    const rawContent = await readFileAsText(file);
+    const payload = JSON.parse(rawContent);
+    await restoreBackupPayload(payload);
+    await refreshAppState();
+    setMode(modeBeforeImport);
+    setDataToolsHint(`备份已导入完成，当前恢复了 ${lifeRecords.length} 张生活照片和已有设置。`);
+  } catch (error) {
+    if (error instanceof SyntaxError) {
+      setDataToolsHint("导入失败了，这个文件不是有效的 JSON 备份。");
+    } else {
+      setDataToolsHint(error instanceof Error ? error.message : "导入失败了，请确认文件完整后再试。");
+    }
+  } finally {
+    setDataToolsBusy(false);
+  }
+}
+
 async function handleLifeImageChange(event) {
   const files = Array.from(event.target.files || []);
   event.target.value = "";
@@ -1308,6 +1899,15 @@ async function handleLifeImageChange(event) {
 }
 
 async function handleLifeTimelineClick(event) {
+  const previewTrigger = event.target.closest(".life-entry-preview");
+  if (previewTrigger) {
+    const photoId = previewTrigger.dataset.id;
+    if (photoId) {
+      openLifeLightbox(photoId);
+    }
+    return;
+  }
+
   const editButton = event.target.closest(".life-entry-edit");
   if (editButton) {
     const photoId = editButton.dataset.id;
@@ -1370,6 +1970,30 @@ async function handleLifeTimelineClick(event) {
   }
 }
 
+function handleLifeLightboxClick(event) {
+  if (event.target.closest("[data-close-lightbox='true']")) {
+    closeLifeLightbox();
+  }
+}
+
+function handleLifeLightboxKeydown(event) {
+  if (lifeLightboxEl.classList.contains("is-hidden")) return;
+
+  if (event.key === "Escape") {
+    closeLifeLightbox();
+    return;
+  }
+
+  if (event.key === "ArrowLeft") {
+    moveLifeLightbox(-1);
+    return;
+  }
+
+  if (event.key === "ArrowRight") {
+    moveLifeLightbox(1);
+  }
+}
+
 function handleLifeDropzoneDragEnter(event) {
   event.preventDefault();
   setLifeDropzoneActive(true);
@@ -1405,11 +2029,16 @@ function handleLifeDropzoneKeydown(event) {
   lifeImageInputEl.click();
 }
 
+function handleLifeFiltersChange() {
+  renderLifeTimeline();
+}
+
 async function handleResetLife() {
   lifeImageInputEl.value = "";
   lifeTitleEl.value = "";
   lifeNoteEl.value = "";
   lifeEditingId = "";
+  resetLifeFilters(false);
   setLifeDropzoneActive(false);
   updateLifeComposerPreview();
 
@@ -1457,6 +2086,14 @@ lifeDropzoneEl.addEventListener("dragenter", handleLifeDropzoneDragEnter);
 lifeDropzoneEl.addEventListener("dragover", handleLifeDropzoneDragOver);
 lifeDropzoneEl.addEventListener("dragleave", handleLifeDropzoneDragLeave);
 lifeDropzoneEl.addEventListener("drop", handleLifeDropzoneDrop);
+exportDataBtnEl.addEventListener("click", handleExportData);
+importDataBtnEl.addEventListener("click", () => importDataInputEl.click());
+importDataInputEl.addEventListener("change", handleImportDataChange);
+closeLifeLightboxBtnEl.addEventListener("click", closeLifeLightbox);
+prevLifeLightboxBtnEl.addEventListener("click", () => moveLifeLightbox(-1));
+nextLifeLightboxBtnEl.addEventListener("click", () => moveLifeLightbox(1));
+lifeLightboxEl.addEventListener("click", handleLifeLightboxClick);
+window.addEventListener("keydown", handleLifeLightboxKeydown);
 
 saveBtnEl.addEventListener("click", handleSave);
 resetBtnEl.addEventListener("click", resetCountdown);
@@ -1471,6 +2108,10 @@ lifeImageInputEl.addEventListener("change", handleLifeImageChange);
 lifeTimelineEl.addEventListener("click", handleLifeTimelineClick);
 lifeTitleEl.addEventListener("input", updateLifeComposerPreview);
 lifeNoteEl.addEventListener("input", updateLifeComposerPreview);
+lifeSearchInputEl.addEventListener("input", handleLifeFiltersChange);
+lifeStartDateFilterEl.addEventListener("change", handleLifeFiltersChange);
+lifeEndDateFilterEl.addEventListener("change", handleLifeFiltersChange);
+clearLifeFiltersBtnEl.addEventListener("click", () => resetLifeFilters());
 
 anniversaryTypeGroupEl.addEventListener("click", (event) => {
   const chip = event.target.closest(".type-chip");
@@ -1495,60 +2136,14 @@ quickBtnEls.forEach((button) => {
   });
 });
 
-const savedTime = normalizeTimeValue(localStorage.getItem(STORAGE_KEY));
-const savedStartTime = normalizeTimeValue(localStorage.getItem(START_STORAGE_KEY));
-const countdownDraft = readCountdownDraft();
-const savedAnniversary = readSavedAnniversary();
-
-if (savedTime) {
-  startCountdown(savedTime, savedStartTime);
-} else {
-  if (countdownDraft.startTime) {
-    workStartTimeEl.value = countdownDraft.startTime;
-  }
-
-  if (countdownDraft.endTime) {
-    timeInputEl.value = countdownDraft.endTime;
-    syncQuickButtons(countdownDraft.endTime);
-  }
-}
-
-if (savedAnniversary) {
-  setAnniversaryType(savedAnniversary.type);
-  anniversaryNameEl.value = savedAnniversary.name;
-  anniversaryDateEl.value = savedAnniversary.date;
-  startAnniversary(savedAnniversary);
-} else {
-  setAnniversaryType("生日");
-}
-
-applyAnniversaryImage(null);
-applyLifeRecords([]);
-updateLifeComposerPreview();
-
-readAnniversaryImage()
-  .then((savedImage) => {
-    if (!savedImage?.blob) return;
-    applyAnniversaryImage(savedImage);
-  })
-  .catch(() => {
-    setAnniversaryImageHint("背景图读取失败了，可以重新选择一张图片。");
-  });
-
-loadLifePhotos().catch(() => {
-  setLifeUploadHint("生活照片读取失败了，可以重新上传一张图片。");
-
-  if (currentMode === "life") {
-    insightTextEl.textContent = "当前浏览器里的生活时间线读取失败了，可以重新上传照片开始记录。";
-  }
-});
-
 window.addEventListener("beforeunload", () => {
   revokeAnniversaryImageUrl();
   revokeLifePhotoUrls();
+  revokeLifePreviewImageUrl();
 });
 
 setDailyQuote();
 setMode("countdown");
+refreshAppState();
 tick();
 window.setInterval(tick, 1000);
