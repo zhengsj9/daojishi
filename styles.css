@@ -174,6 +174,7 @@ body::after {
 .card-tag,
 .quote-label,
 .anniversary-kicker,
+.life-kicker,
 .insight-label {
   margin: 0;
   font-family: "Space Grotesk", sans-serif;
@@ -195,6 +196,7 @@ h2 {
 .current-time,
 .quote-author,
 .anniversary-date,
+.life-summary,
 .field-hint {
   color: var(--ink-soft);
 }
@@ -220,6 +222,7 @@ h2 {
 .quote-card,
 .countdown-panel,
 .anniversary-panel,
+.life-panel,
 .insight-card {
   position: relative;
   overflow: hidden;
@@ -232,6 +235,30 @@ h2 {
   display: flex;
   flex-direction: column;
   isolation: isolate;
+}
+
+.life-panel {
+  position: relative;
+  isolation: isolate;
+  padding: 30px 34px;
+  background:
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.92), transparent 34%),
+    linear-gradient(180deg, rgba(252, 255, 254, 0.98), rgba(243, 250, 247, 0.94));
+}
+
+.life-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 14% 18%, rgba(160, 218, 207, 0.16), transparent 18%),
+    radial-gradient(circle at 84% 86%, rgba(255, 255, 255, 0.76), transparent 20%);
+}
+
+.life-panel > * {
+  position: relative;
+  z-index: 1;
 }
 
 .anniversary-panel::before,
@@ -309,7 +336,8 @@ h2 {
 }
 
 .countdown-panel,
-.anniversary-panel {
+.anniversary-panel,
+.life-panel {
   padding: 30px 34px;
 }
 
@@ -508,6 +536,279 @@ h2 {
   box-shadow: 0 0 0 6px rgba(221, 255, 245, 0.16);
 }
 
+.life-head {
+  display: grid;
+  gap: 10px;
+}
+
+.life-title {
+  font-size: clamp(1.56rem, 2.1vw, 2.2rem);
+}
+
+.life-summary {
+  margin: 0;
+  max-width: 46ch;
+  line-height: 1.6;
+}
+
+.life-stats-grid,
+.life-upload-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.life-stats-grid {
+  margin-top: 22px;
+}
+
+.life-stat-card,
+.life-mini-stat {
+  padding: 16px 18px;
+  border-radius: 20px;
+  border: 1px solid var(--line);
+  background: rgba(252, 255, 254, 0.86);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.life-stat-label,
+.life-mini-stat span {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--ink-soft);
+  font-size: 0.86rem;
+}
+
+.life-stat-card strong,
+.life-mini-stat strong {
+  display: block;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: clamp(1.02rem, 1.7vw, 1.26rem);
+  line-height: 1.3;
+  color: var(--accent-deep);
+}
+
+.life-timeline {
+  position: relative;
+  display: grid;
+  gap: 22px;
+  padding-top: 6px;
+}
+
+.life-timeline::before {
+  content: none;
+}
+
+.life-timeline.is-empty::before {
+  content: "";
+  position: absolute;
+  left: 23px;
+  top: 10px;
+  bottom: auto;
+  height: 88px;
+  width: 2px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(127, 194, 184, 0.18), rgba(79, 148, 144, 0.72), rgba(127, 194, 184, 0.18));
+  opacity: 0.6;
+}
+
+.life-group {
+  display: grid;
+  gap: 14px;
+}
+
+.life-group-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 2px;
+}
+
+.life-group-title,
+.life-group-meta {
+  margin: 0;
+}
+
+.life-group-title {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 0.94rem;
+  letter-spacing: 0.08em;
+  color: var(--accent-deep);
+}
+
+.life-group-meta {
+  color: var(--ink-soft);
+  font-size: 0.86rem;
+}
+
+.life-group-list {
+  position: relative;
+  display: grid;
+  gap: 22px;
+}
+
+.life-group-list::before {
+  content: "";
+  position: absolute;
+  left: 23px;
+  top: 10px;
+  bottom: 12px;
+  width: 2px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(127, 194, 184, 0.18), rgba(79, 148, 144, 0.72), rgba(127, 194, 184, 0.18));
+}
+
+.life-entry {
+  position: relative;
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+  animation: lifeEntryLift 380ms ease both;
+}
+
+.life-entry-axis {
+  display: flex;
+  justify-content: center;
+  padding-top: 10px;
+}
+
+.life-entry-node {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent-deep);
+  box-shadow:
+    0 0 0 6px rgba(127, 194, 184, 0.14),
+    0 10px 20px rgba(79, 148, 144, 0.2);
+}
+
+.life-entry-content {
+  min-width: 0;
+}
+
+.life-entry-time {
+  margin: 0 0 10px;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 0.88rem;
+  letter-spacing: 0.04em;
+  color: var(--accent-deep);
+}
+
+.life-entry-card {
+  overflow: hidden;
+  border-radius: 24px;
+  border: 1px solid rgba(137, 196, 189, 0.24);
+  background: rgba(253, 255, 254, 0.92);
+  box-shadow: 0 18px 42px rgba(127, 194, 184, 0.12);
+}
+
+.life-entry-image-wrap {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.92), transparent 32%),
+    linear-gradient(140deg, rgba(236, 248, 243, 0.96), rgba(244, 252, 249, 0.92));
+}
+
+.life-entry-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.life-entry-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 16px 18px 18px;
+}
+
+.life-entry-copy {
+  display: grid;
+  gap: 7px;
+}
+
+.life-entry-index,
+.life-entry-name,
+.life-entry-note,
+.life-entry-file,
+.life-upload-preview-title,
+.life-upload-preview-text,
+.life-empty-title,
+.life-empty-text {
+  margin: 0;
+}
+
+.life-entry-index {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 0.84rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent-deep);
+}
+
+.life-entry-name {
+  line-height: 1.5;
+  color: var(--ink-strong);
+  font-weight: 600;
+  word-break: break-word;
+}
+
+.life-entry-note {
+  line-height: 1.6;
+  color: var(--ink-soft);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.life-entry-file {
+  font-size: 0.82rem;
+  line-height: 1.4;
+  color: var(--ink-soft);
+}
+
+.life-entry-delete {
+  flex-shrink: 0;
+}
+
+.life-empty-state {
+  position: relative;
+  padding: 24px 22px 24px 76px;
+  border-radius: 24px;
+  border: 1px dashed rgba(127, 194, 184, 0.46);
+  background:
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.88), transparent 34%),
+    linear-gradient(150deg, rgba(244, 251, 248, 0.94), rgba(252, 255, 254, 0.96));
+}
+
+.life-empty-state::before {
+  content: "";
+  position: absolute;
+  left: 19px;
+  top: 29px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 6px rgba(127, 194, 184, 0.12);
+}
+
+.life-empty-title {
+  font-size: 1.02rem;
+  font-weight: 600;
+}
+
+.life-empty-text {
+  margin-top: 8px;
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+
 .action-row,
 .quick-actions {
   display: flex;
@@ -627,6 +928,51 @@ button:disabled {
   gap: 10px;
 }
 
+.life-upload-card {
+  background:
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.88), transparent 34%),
+    linear-gradient(160deg, rgba(248, 253, 251, 0.92), rgba(242, 250, 247, 0.9));
+}
+
+.life-upload-preview {
+  position: relative;
+  overflow: hidden;
+  padding: 18px;
+  border-radius: 22px;
+  border: 1px solid rgba(137, 196, 189, 0.28);
+  background:
+    linear-gradient(140deg, rgba(79, 148, 144, 0.12), transparent 52%),
+    linear-gradient(140deg, rgba(255, 255, 255, 0.92), rgba(245, 252, 249, 0.94));
+}
+
+.life-upload-preview::before {
+  content: "";
+  position: absolute;
+  inset: auto -28px -38px auto;
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  background: rgba(127, 194, 184, 0.12);
+  filter: blur(6px);
+}
+
+.life-upload-preview-title {
+  position: relative;
+  z-index: 1;
+  margin-bottom: 6px;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 0.94rem;
+  letter-spacing: 0.08em;
+  color: var(--accent-deep);
+}
+
+.life-upload-preview-text {
+  position: relative;
+  z-index: 1;
+  line-height: 1.6;
+  color: var(--ink-strong);
+}
+
 .anniversary-image-preview {
   position: relative;
   overflow: hidden;
@@ -690,6 +1036,7 @@ button:disabled {
 }
 
 .time-input-wrap input,
+.time-input-wrap textarea,
 .select-input {
   width: 100%;
   padding: 14px 16px;
@@ -698,6 +1045,11 @@ button:disabled {
   background: rgba(253, 255, 254, 0.9);
   color: var(--ink-strong);
   font-size: 1rem;
+}
+
+.time-input-wrap textarea {
+  min-height: 116px;
+  resize: vertical;
 }
 
 .type-chip-group {
@@ -744,6 +1096,11 @@ button:disabled {
   to { background-position: 0 0, 120px 0; }
 }
 
+@keyframes lifeEntryLift {
+  0% { opacity: 0; transform: translateY(12px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
 @media (max-width: 980px) {
   .app-shell {
     grid-template-columns: 1fr;
@@ -753,6 +1110,11 @@ button:disabled {
   .hero-card,
   .editor-card {
     padding: 24px;
+  }
+
+  .life-stats-grid,
+  .life-upload-stats {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -771,6 +1133,23 @@ button:disabled {
     align-items: flex-start;
   }
 
+  .menu-bar {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+  }
+
+  .menu-tab {
+    flex: 1 1 30%;
+    text-align: center;
+  }
+
+  .countdown-panel,
+  .anniversary-panel,
+  .life-panel {
+    padding: 24px 20px;
+  }
+
   .time-grid {
     gap: 8px;
   }
@@ -781,6 +1160,38 @@ button:disabled {
 
   .time-value {
     font-size: clamp(2.6rem, 12vw, 4rem);
+  }
+
+  .life-entry {
+    grid-template-columns: 38px minmax(0, 1fr);
+    gap: 14px;
+  }
+
+  .life-timeline.is-empty::before,
+  .life-group-list::before {
+    left: 18px;
+  }
+
+  .life-entry-time {
+    font-size: 0.8rem;
+  }
+
+  .life-group-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .life-entry-meta {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .life-entry-delete {
+    width: 100%;
+  }
+
+  .life-empty-state {
+    padding-left: 62px;
   }
 }
 

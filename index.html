@@ -26,6 +26,9 @@
           <button id="anniversaryTab" class="menu-tab" type="button" role="tab" aria-selected="false">
             纪念日
           </button>
+          <button id="lifeTab" class="menu-tab" type="button" role="tab" aria-selected="false">
+            点滴生活
+          </button>
         </div>
 
         <div class="hero-top">
@@ -122,6 +125,45 @@
             <button id="resetAnniversaryBtn" class="ghost-btn" type="button">清除设置</button>
           </div>
         </div>
+
+        <div id="lifeView" class="mode-view is-hidden">
+          <div class="life-panel">
+            <div class="life-head">
+              <p class="life-kicker">点滴生活</p>
+              <h2 class="life-title" id="lifeHeadline">还没有生活照片</h2>
+              <p class="life-summary" id="lifeSummaryText">
+                上传照片后，系统会自动记录上传时间，并沿着时间线把日常慢慢串起来。
+              </p>
+            </div>
+
+            <div class="life-stats-grid">
+              <article class="life-stat-card">
+                <span class="life-stat-label">照片数量</span>
+                <strong id="lifeCountText">0 张</strong>
+              </article>
+              <article class="life-stat-card">
+                <span class="life-stat-label">最近上传</span>
+                <strong id="lifeLatestText">等待记录</strong>
+              </article>
+            </div>
+
+            <div class="divider-line" aria-hidden="true"></div>
+
+            <p class="mood-line">把生活里的闪光时刻，沿着一条线认真收藏</p>
+
+            <div id="lifeTimeline" class="life-timeline is-empty" aria-live="polite">
+              <article class="life-empty-state">
+                <p class="life-empty-title">时间线还没有开始</p>
+                <p class="life-empty-text">选一张喜欢的照片，上传的那一刻就会成为这条生活线上的新节点。</p>
+              </article>
+            </div>
+          </div>
+
+          <div class="action-row">
+            <button id="openLifeUploaderBtn" class="primary-btn" type="button">上传照片</button>
+            <button id="resetLifeBtn" class="ghost-btn" type="button">清空时间线</button>
+          </div>
+        </div>
       </section>
 
       <section class="editor-card">
@@ -208,6 +250,59 @@
             </div>
 
             <button id="saveAnniversaryBtn" class="save-btn" type="button">开始记录</button>
+          </div>
+        </div>
+
+        <div id="lifeEditor" class="editor-mode is-hidden">
+          <div class="editor-body">
+            <div class="image-upload-card life-upload-card">
+              <div class="image-upload-head">
+                <span>上传生活照片</span>
+                <small class="field-hint">支持一次选择多张图片，系统会自动记录上传时间并加入时间线。</small>
+              </div>
+
+              <div class="life-upload-preview">
+                <p class="life-upload-preview-title">时间线会自动延展</p>
+                <p id="lifeUploadPreviewText" class="life-upload-preview-text">
+                  每张照片都会带上上传时刻，像日记一样被串联起来。
+                </p>
+              </div>
+
+              <label class="time-input-wrap" for="lifeTitle">
+                <span>这一组标题</span>
+                <input id="lifeTitle" type="text" maxlength="28" placeholder="例如：周末散步" />
+              </label>
+
+              <label class="time-input-wrap" for="lifeNote">
+                <span>这一刻想写的话</span>
+                <textarea
+                  id="lifeNote"
+                  class="text-area-input"
+                  rows="4"
+                  maxlength="140"
+                  placeholder="可选，写一点当时的心情、地点或发生的小事。"
+                ></textarea>
+              </label>
+
+              <div class="life-upload-stats">
+                <article class="life-mini-stat">
+                  <span>已记录</span>
+                  <strong id="lifeEditorCount">0 张</strong>
+                </article>
+                <article class="life-mini-stat">
+                  <span>最新节点</span>
+                  <strong id="lifeEditorLatestText">等待上传</strong>
+                </article>
+              </div>
+
+              <div class="image-upload-actions">
+                <button id="selectLifeImageBtn" class="save-btn" type="button">选择照片并加入时间线</button>
+                <button id="clearLifeBtn" class="ghost-btn" type="button">清空全部记录</button>
+              </div>
+
+              <input id="lifeImageInput" type="file" accept="image/*" multiple hidden />
+              <p id="lifeUploadHint" class="field-hint">支持 JPG、PNG、WebP 等图片格式，单张建议不超过 8MB。</p>
+            </div>
           </div>
         </div>
       </section>
