@@ -72,6 +72,7 @@ const lifeUploadHintEl = document.querySelector("#lifeUploadHint");
 const lifeUploadPreviewTextEl = document.querySelector("#lifeUploadPreviewText");
 const lifeEditorCountEl = document.querySelector("#lifeEditorCount");
 const lifeEditorLatestTextEl = document.querySelector("#lifeEditorLatestText");
+const lifeDropzoneEl = document.querySelector("#lifeDropzone");
 const lifeTitleEl = document.querySelector("#lifeTitle");
 const lifeNoteEl = document.querySelector("#lifeNote");
 
@@ -114,6 +115,7 @@ let anniversaryTypeValue = "生日";
 let anniversaryImageUrl = "";
 let lifeRecords = [];
 let lifePhotoUrls = [];
+let lifeEditingId = "";
 
 function pad(value) {
   return String(value).padStart(2, "0");
@@ -407,6 +409,14 @@ function updateLifeComposerPreview() {
   lifeUploadPreviewTextEl.textContent = "每张照片都会带上上传时刻，像日记一样被串联起来。";
 }
 
+function setLifeDropzoneActive(active) {
+  lifeDropzoneEl.classList.toggle("is-dragover", active);
+}
+
+function getLifeRecordById(id) {
+  return lifeRecords.find((record) => record.id === id) || null;
+}
+
 function groupLifeRecordsByDay(records) {
   const groups = [];
   let currentGroup = null;
@@ -563,14 +573,80 @@ function renderLifeTimeline() {
         metaCopyEl.appendChild(fileNameEl);
       }
 
+      const actionsEl = document.createElement("div");
+      actionsEl.className = "life-entry-actions";
+
+      const editButtonEl = document.createElement("button");
+      editButtonEl.className = "ghost-btn life-entry-edit";
+      editButtonEl.type = "button";
+      editButtonEl.dataset.id = record.id;
+      editButtonEl.textContent = "编辑备注";
+
       const deleteButtonEl = document.createElement("button");
       deleteButtonEl.className = "quick-btn life-entry-delete";
       deleteButtonEl.type = "button";
       deleteButtonEl.dataset.id = record.id;
       deleteButtonEl.textContent = "移除";
 
-      metaEl.append(metaCopyEl, deleteButtonEl);
+      actionsEl.append(editButtonEl, deleteButtonEl);
+      metaEl.append(metaCopyEl, actionsEl);
       cardEl.append(imageWrapEl, metaEl);
+
+      if (lifeEditingId === record.id) {
+        const editorEl = document.createElement("div");
+        editorEl.className = "life-entry-editor";
+        editorEl.dataset.id = record.id;
+
+        const editorTitleWrapEl = document.createElement("label");
+        editorTitleWrapEl.className = "time-input-wrap life-entry-field";
+
+        const editorTitleLabelEl = document.createElement("span");
+        editorTitleLabelEl.textContent = "标题";
+
+        const editorTitleInputEl = document.createElement("input");
+        editorTitleInputEl.className = "life-entry-edit-title";
+        editorTitleInputEl.type = "text";
+        editorTitleInputEl.maxLength = 28;
+        editorTitleInputEl.value = record.title;
+        editorTitleInputEl.placeholder = "例如：周末散步";
+
+        editorTitleWrapEl.append(editorTitleLabelEl, editorTitleInputEl);
+
+        const editorNoteWrapEl = document.createElement("label");
+        editorNoteWrapEl.className = "time-input-wrap life-entry-field";
+
+        const editorNoteLabelEl = document.createElement("span");
+        editorNoteLabelEl.textContent = "备注";
+
+        const editorNoteInputEl = document.createElement("textarea");
+        editorNoteInputEl.className = "text-area-input life-entry-edit-note";
+        editorNoteInputEl.rows = 4;
+        editorNoteInputEl.maxLength = 140;
+        editorNoteInputEl.placeholder = "写一点当时的心情、地点或发生的小事。";
+        editorNoteInputEl.value = record.note;
+
+        editorNoteWrapEl.append(editorNoteLabelEl, editorNoteInputEl);
+
+        const editorActionsEl = document.createElement("div");
+        editorActionsEl.className = "life-entry-editor-actions";
+
+        const saveButtonEl = document.createElement("button");
+        saveButtonEl.className = "save-btn life-entry-save";
+        saveButtonEl.type = "button";
+        saveButtonEl.dataset.id = record.id;
+        saveButtonEl.textContent = "保存";
+
+        const cancelButtonEl = document.createElement("button");
+        cancelButtonEl.className = "ghost-btn life-entry-cancel";
+        cancelButtonEl.type = "button";
+        cancelButtonEl.dataset.id = record.id;
+        cancelButtonEl.textContent = "取消";
+
+        editorActionsEl.append(saveButtonEl, cancelButtonEl);
+        editorEl.append(editorTitleWrapEl, editorNoteWrapEl, editorActionsEl);
+        cardEl.appendChild(editorEl);
+      }
+
       contentEl.append(timeEl, cardEl);
       entryEl.append(axisEl, contentEl);
       groupListEl.appendChild(entryEl);
@@ -588,6 +664,10 @@ function applyLifeRecords(records) {
     .map(normalizeLifeRecord)
     .filter(Boolean)
     .sort((first, second) => first.uploadedAt - second.uploadedAt);
+
+  if (lifeEditingId && !lifeRecords.some((record) => record.id === lifeEditingId)) {
+    lifeEditingId = "";
+  }
 
   renderLifeTimeline();
 
@@ -763,6 +843,51 @@ async function persistLifePhotos(files, metadata = {}) {
   });
 }
 
+async function updateLifePhotoMetadata(id, metadata = {}) {
+  const db = await openMediaDb();
+
+  if (!db) {
+    throw new Error("IndexedDB is not supported");
+  }
+
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(LIFE_PHOTO_STORE_NAME, "readwrite");
+    const store = transaction.objectStore(LIFE_PHOTO_STORE_NAME);
+    const request = store.get(id);
+
+    request.onsuccess = () => {
+      const existingRecord = request.result;
+
+      if (!existingRecord) {
+        reject(new Error("Life photo record not found"));
+        return;
+      }
+
+      store.put({
+        ...existingRecord,
+        title: typeof metadata.title === "string" ? metadata.title.trim() : existingRecord.title || "",
+        note: typeof metadata.note === "string" ? metadata.note.trim() : existingRecord.note || "",
+      });
+    };
+
+    request.onerror = () => {
+      reject(request.error || new Error("Failed to read life photo"));
+    };
+    transaction.oncomplete = () => {
+      db.close();
+      resolve();
+    };
+    transaction.onerror = () => {
+      db.close();
+      reject(transaction.error || new Error("Failed to update life photo"));
+    };
+    transaction.onabort = () => {
+      db.close();
+      reject(transaction.error || new Error("Failed to update life photo"));
+    };
+  });
+}
+
 async function removeLifePhoto(id) {
   const db = await openMediaDb();
 
@@ -819,6 +944,76 @@ async function loadLifePhotos() {
   const records = await readLifePhotos();
   applyLifeRecords(records);
   return records;
+}
+
+function collectLifeFiles(files) {
+  const validFiles = [];
+  let invalidTypeCount = 0;
+  let invalidSizeCount = 0;
+
+  files.forEach((file) => {
+    if (!file.type.startsWith("image/")) {
+      invalidTypeCount += 1;
+      return;
+    }
+
+    if (file.size > MAX_IMAGE_SIZE) {
+      invalidSizeCount += 1;
+      return;
+    }
+
+    validFiles.push(file);
+  });
+
+  return {
+    validFiles,
+    invalidTypeCount,
+    invalidSizeCount,
+  };
+}
+
+async function addLifeFiles(files) {
+  const titleValue = lifeTitleEl.value.trim();
+  const noteValue = lifeNoteEl.value.trim();
+  const { validFiles, invalidTypeCount, invalidSizeCount } = collectLifeFiles(files);
+
+  if (!validFiles.length) {
+    if (invalidSizeCount && invalidTypeCount) {
+      setLifeUploadHint("请选择 8MB 以内的图片文件。");
+      return;
+    }
+
+    if (invalidSizeCount) {
+      setLifeUploadHint("图片太大了，请换成 8MB 以内的照片。");
+      return;
+    }
+
+    setLifeUploadHint("请选择 JPG、PNG、WebP 等图片文件。");
+    return;
+  }
+
+  setLifeUploadHint(validFiles.length > 1 ? "正在把这些照片挂上时间线..." : "正在把照片挂上时间线...");
+
+  try {
+    await persistLifePhotos(validFiles, {
+      title: titleValue,
+      note: noteValue,
+    });
+    await loadLifePhotos();
+    lifeTitleEl.value = "";
+    lifeNoteEl.value = "";
+    updateLifeComposerPreview();
+
+    const skippedCount = invalidTypeCount + invalidSizeCount;
+    const savedMessage = `已加入 ${validFiles.length} 张照片，上传时间已自动记录。`;
+    setLifeUploadHint(skippedCount ? `${savedMessage} 已跳过 ${skippedCount} 张不符合要求的文件。` : savedMessage);
+
+    if (currentMode === "life") {
+      insightTextEl.textContent = getLifeInsightMessage();
+    }
+  } catch {
+    setLifeUploadHint("照片保存失败了，可能是图片过大或浏览器存储空间不足。");
+  }
 }
 
 function toMinutes(timeValue) {
@@ -1105,66 +1300,58 @@ async function handleClearAnniversaryImage() {
 
 async function handleLifeImageChange(event) {
   const files = Array.from(event.target.files || []);
-  const titleValue = lifeTitleEl.value.trim();
-  const noteValue = lifeNoteEl.value.trim();
   event.target.value = "";
 
   if (!files.length) return;
 
-  const validFiles = [];
-  let invalidTypeCount = 0;
-  let invalidSizeCount = 0;
-
-  files.forEach((file) => {
-    if (!file.type.startsWith("image/")) {
-      invalidTypeCount += 1;
-      return;
-    }
-
-    if (file.size > MAX_IMAGE_SIZE) {
-      invalidSizeCount += 1;
-      return;
-    }
-
-    validFiles.push(file);
-  });
-
-  if (!validFiles.length) {
-    if (invalidSizeCount && invalidTypeCount) {
-      setLifeUploadHint("请选择 8MB 以内的图片文件。");
-      return;
-    }
-
-    if (invalidSizeCount) {
-      setLifeUploadHint("图片太大了，请换成 8MB 以内的照片。");
-      return;
-    }
-
-    setLifeUploadHint("请选择 JPG、PNG、WebP 等图片文件。");
-    return;
-  }
-
-  setLifeUploadHint(validFiles.length > 1 ? "正在把这些照片挂上时间线..." : "正在把照片挂上时间线...");
-
-  try {
-    await persistLifePhotos(validFiles, {
-      title: titleValue,
-      note: noteValue,
-    });
-    await loadLifePhotos();
-    lifeTitleEl.value = "";
-    lifeNoteEl.value = "";
-    updateLifeComposerPreview();
-
-    const skippedCount = invalidTypeCount + invalidSizeCount;
-    const savedMessage = `已加入 ${validFiles.length} 张照片，上传时间已自动记录。`;
-    setLifeUploadHint(skippedCount ? `${savedMessage} 已跳过 ${skippedCount} 张不符合要求的文件。` : savedMessage);
-  } catch {
-    setLifeUploadHint("照片保存失败了，可能是图片过大或浏览器存储空间不足。");
-  }
+  await addLifeFiles(files);
 }
 
 async function handleLifeTimelineClick(event) {
+  const editButton = event.target.closest(".life-entry-edit");
+  if (editButton) {
+    const photoId = editButton.dataset.id;
+    const record = photoId ? getLifeRecordById(photoId) : null;
+    if (!record) return;
+
+    lifeEditingId = record.id;
+    renderLifeTimeline();
+    const titleInput = lifeTimelineEl.querySelector(`.life-entry-editor[data-id="${record.id}"] .life-entry-edit-title`);
+    titleInput?.focus();
+    return;
+  }
+
+  const cancelButton = event.target.closest(".life-entry-cancel");
+  if (cancelButton) {
+    lifeEditingId = "";
+    renderLifeTimeline();
+    setLifeUploadHint("已取消编辑，原有备注保持不变。");
+    return;
+  }
+
+  const saveButton = event.target.closest(".life-entry-save");
+  if (saveButton) {
+    const photoId = saveButton.dataset.id;
+    const editorEl = photoId ? lifeTimelineEl.querySelector(`.life-entry-editor[data-id="${photoId}"]`) : null;
+    if (!photoId || !editorEl) return;
+
+    const titleInput = editorEl.querySelector(".life-entry-edit-title");
+    const noteInput = editorEl.querySelector(".life-entry-edit-note");
+
+    try {
+      await updateLifePhotoMetadata(photoId, {
+        title: titleInput?.value || "",
+        note: noteInput?.value || "",
+      });
+      lifeEditingId = "";
+      await loadLifePhotos();
+      setLifeUploadHint("这条生活记录已经更新。");
+    } catch {
+      setLifeUploadHint("保存备注失败了，可以再试一次。");
+    }
+    return;
+  }
+
   const deleteButton = event.target.closest(".life-entry-delete");
   if (!deleteButton) return;
 
@@ -1172,6 +1359,9 @@ async function handleLifeTimelineClick(event) {
   if (!photoId) return;
 
   try {
+    if (lifeEditingId === photoId) {
+      lifeEditingId = "";
+    }
     await removeLifePhoto(photoId);
     await loadLifePhotos();
     setLifeUploadHint("这张照片已经从时间线移除。");
@@ -1180,10 +1370,47 @@ async function handleLifeTimelineClick(event) {
   }
 }
 
+function handleLifeDropzoneDragEnter(event) {
+  event.preventDefault();
+  setLifeDropzoneActive(true);
+}
+
+function handleLifeDropzoneDragOver(event) {
+  event.preventDefault();
+  event.dataTransfer.dropEffect = "copy";
+  setLifeDropzoneActive(true);
+}
+
+function handleLifeDropzoneDragLeave(event) {
+  if (event.currentTarget.contains(event.relatedTarget)) return;
+  setLifeDropzoneActive(false);
+}
+
+async function handleLifeDropzoneDrop(event) {
+  event.preventDefault();
+  setLifeDropzoneActive(false);
+
+  const files = Array.from(event.dataTransfer?.files || []);
+  if (!files.length) {
+    setLifeUploadHint("没有识别到图片文件，可以再拖一次试试。");
+    return;
+  }
+
+  await addLifeFiles(files);
+}
+
+function handleLifeDropzoneKeydown(event) {
+  if (event.key !== "Enter" && event.key !== " ") return;
+  event.preventDefault();
+  lifeImageInputEl.click();
+}
+
 async function handleResetLife() {
   lifeImageInputEl.value = "";
   lifeTitleEl.value = "";
   lifeNoteEl.value = "";
+  lifeEditingId = "";
+  setLifeDropzoneActive(false);
   updateLifeComposerPreview();
 
   if (!lifeRecords.length) {
@@ -1224,6 +1451,12 @@ openAnniversaryBtnEl.addEventListener("click", () => {
 
 openLifeUploaderBtnEl.addEventListener("click", () => lifeImageInputEl.click());
 selectLifeImageBtnEl.addEventListener("click", () => lifeImageInputEl.click());
+lifeDropzoneEl.addEventListener("click", () => lifeImageInputEl.click());
+lifeDropzoneEl.addEventListener("keydown", handleLifeDropzoneKeydown);
+lifeDropzoneEl.addEventListener("dragenter", handleLifeDropzoneDragEnter);
+lifeDropzoneEl.addEventListener("dragover", handleLifeDropzoneDragOver);
+lifeDropzoneEl.addEventListener("dragleave", handleLifeDropzoneDragLeave);
+lifeDropzoneEl.addEventListener("drop", handleLifeDropzoneDrop);
 
 saveBtnEl.addEventListener("click", handleSave);
 resetBtnEl.addEventListener("click", resetCountdown);
