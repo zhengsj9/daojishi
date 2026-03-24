@@ -17,7 +17,7 @@
     <div class="ambient-layer ambient-layer-b" aria-hidden="true"></div>
     <div class="grid-overlay" aria-hidden="true"></div>
 
-    <main class="app-shell">
+    <main id="appShell" class="app-shell">
       <section class="hero-card">
         <div class="menu-bar" role="tablist" aria-label="时间模式">
           <button id="countdownTab" class="menu-tab is-active" type="button" role="tab" aria-selected="true">
@@ -231,13 +231,24 @@
         </div>
       </section>
 
-      <section class="editor-card">
+      <section id="editorCard" class="editor-card">
         <div class="editor-header">
           <div>
             <p class="card-tag" id="editorTag">今日设置</p>
             <h2 id="editorTitle">安排你的下班时刻</h2>
           </div>
-          <p id="currentTimeText" class="current-time">现在时间：--:--:--</p>
+          <div class="editor-header-actions">
+            <p id="currentTimeText" class="current-time">现在时间：--:--:--</p>
+            <button
+              id="hideSidebarBtn"
+              class="sidebar-toggle-btn"
+              type="button"
+              aria-controls="editorCard"
+              aria-expanded="true"
+            >
+              隐藏右侧菜单
+            </button>
+          </div>
         </div>
 
         <div id="insightCard" class="insight-card">
@@ -445,6 +456,17 @@
           <p id="dataToolsHint" class="field-hint">导出会包含当前浏览器里保存的图片和文字记录。</p>
         </section>
       </section>
+
+      <button
+        id="showSidebarBtn"
+        class="sidebar-reveal-btn"
+        type="button"
+        aria-controls="editorCard"
+        aria-expanded="false"
+        hidden
+      >
+        显示右侧菜单
+      </button>
     </main>
 
     <div id="lifeLightbox" class="life-lightbox is-hidden" aria-hidden="true">

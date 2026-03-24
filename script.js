@@ -9,7 +9,9 @@ const ANNIVERSARY_STORAGE_KEY = "anniversary-records";
 const ACTIVE_ANNIVERSARY_STORAGE_KEY = "active-anniversary-id";
 const ANNIVERSARY_DRAFT_STORAGE_KEY = "anniversary-draft";
 const DISPLAY_PREFERENCES_STORAGE_KEY = "display-preferences";
+const EDITOR_SIDEBAR_VISIBILITY_STORAGE_KEY = "editor-sidebar-visible";
 
+const appShellEl = document.querySelector("#appShell");
 const countdownTabEl = document.querySelector("#countdownTab");
 const anniversaryTabEl = document.querySelector("#anniversaryTab");
 const lifeTabEl = document.querySelector("#lifeTab");
@@ -44,6 +46,9 @@ const insightTextEl = document.querySelector("#insightText");
 const dailyQuoteEl = document.querySelector("#dailyQuote");
 const quoteAuthorEl = document.querySelector("#quoteAuthor");
 const quoteCardEl = document.querySelector("#quoteCard");
+const editorCardEl = document.querySelector("#editorCard");
+const hideSidebarBtnEl = document.querySelector("#hideSidebarBtn");
+const showSidebarBtnEl = document.querySelector("#showSidebarBtn");
 const saveBtnEl = document.querySelector("#saveBtn");
 const resetBtnEl = document.querySelector("#resetBtn");
 const openEditorBtnEl = document.querySelector("#openEditorBtn");
@@ -181,6 +186,7 @@ let lifeEditingId = "";
 let lifePreviewId = "";
 let lifePreviewImageUrl = "";
 let displayPreferences = getDefaultDisplayPreferences();
+let isEditorSidebarVisible = readEditorSidebarVisibility();
 
 function pad(value) {
   return String(value).padStart(2, "0");
@@ -319,6 +325,29 @@ function persistDisplayPreferences(preferences = displayPreferences) {
   localStorage.setItem(DISPLAY_PREFERENCES_STORAGE_KEY, JSON.stringify(normalizeDisplayPreferences(preferences)));
 }
 
+function readEditorSidebarVisibility() {
+  const rawValue = localStorage.getItem(EDITOR_SIDEBAR_VISIBILITY_STORAGE_KEY);
+
+  if (rawValue === null) {
+    return true;
+  }
+
+  if (rawValue === "true") return true;
+  if (rawValue === "false") return false;
+
+  localStorage.removeItem(EDITOR_SIDEBAR_VISIBILITY_STORAGE_KEY);
+  return true;
+}
+
+function persistEditorSidebarVisibility(isVisible = isEditorSidebarVisible) {
+  if (isVisible) {
+    localStorage.removeItem(EDITOR_SIDEBAR_VISIBILITY_STORAGE_KEY);
+    return;
+  }
+
+  localStorage.setItem(EDITOR_SIDEBAR_VISIBILITY_STORAGE_KEY, "false");
+}
+
 function updateDisplaySettingsSummary(preferences = displayPreferences) {
   const hiddenLabels = Object.entries(preferences)
     .filter(([, visible]) => !visible)
@@ -359,6 +388,66 @@ function applyDisplayPreferences(preferences = displayPreferences) {
   });
 
   updateDisplaySettingsSummary(displayPreferences);
+}
+
+function applyEditorSidebarVisibility(isVisible = isEditorSidebarVisible) {
+  isEditorSidebarVisible = isVisible !== false;
+
+  appShellEl.classList.toggle("is-sidebar-collapsed", !isEditorSidebarVisible);
+  editorCardEl.hidden = !isEditorSidebarVisible;
+  editorCardEl.setAttribute("aria-hidden", String(!isEditorSidebarVisible));
+  hideSidebarBtnEl.setAttribute("aria-expanded", String(isEditorSidebarVisible));
+  showSidebarBtnEl.setAttribute("aria-expanded", String(isEditorSidebarVisible));
+  showSidebarBtnEl.hidden = isEditorSidebarVisible;
+}
+
+function setEditorSidebarVisibility(isVisible, options = {}) {
+  const { focusTarget = null, onVisible = null, shouldScroll = false } = options;
+
+  isEditorSidebarVisible = isVisible !== false;
+  persistEditorSidebarVisibility(isEditorSidebarVisible);
+  applyEditorSidebarVisibility(isEditorSidebarVisible);
+
+  if (!isEditorSidebarVisible) {
+    return;
+  }
+
+  window.requestAnimationFrame(() => {
+    if (shouldScroll) {
+      editorCardEl.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+        inline: "nearest",
+      });
+    }
+
+    if (typeof onVisible === "function") {
+      onVisible();
+    }
+
+    if (focusTarget?.focus) {
+      focusTarget.focus();
+    }
+  });
+}
+
+function ensureEditorSidebarVisible(options = {}) {
+  if (isEditorSidebarVisible) {
+    if (typeof options.onVisible === "function") {
+      options.onVisible();
+    }
+
+    if (options.focusTarget?.focus) {
+      options.focusTarget.focus();
+    }
+
+    return;
+  }
+
+  setEditorSidebarVisibility(true, {
+    ...options,
+    shouldScroll: true,
+  });
 }
 
 function handleDisplayPreferenceChange(event) {
@@ -2983,14 +3072,22 @@ anniversaryTabEl.addEventListener("click", () => setMode("anniversary"));
 lifeTabEl.addEventListener("click", () => setMode("life"));
 
 openEditorBtnEl.addEventListener("click", () => {
-  countdownNameEl.focus();
+  ensureEditorSidebarVisible({
+    focusTarget: countdownNameEl,
+  });
 });
 
 openAnniversaryBtnEl.addEventListener("click", () => {
-  anniversaryNameEl.focus();
+  ensureEditorSidebarVisible({
+    focusTarget: anniversaryNameEl,
+  });
 });
 
-openLifeUploaderBtnEl.addEventListener("click", () => lifeImageInputEl.click());
+openLifeUploaderBtnEl.addEventListener("click", () => {
+  ensureEditorSidebarVisible({
+    onVisible: () => lifeImageInputEl.click(),
+  });
+});
 selectLifeImageBtnEl.addEventListener("click", () => lifeImageInputEl.click());
 lifeDropzoneEl.addEventListener("click", () => lifeImageInputEl.click());
 lifeDropzoneEl.addEventListener("keydown", handleLifeDropzoneKeydown);
@@ -3031,6 +3128,8 @@ lifeStartDateFilterEl.addEventListener("change", handleLifeFiltersChange);
 lifeEndDateFilterEl.addEventListener("change", handleLifeFiltersChange);
 clearLifeFiltersBtnEl.addEventListener("click", () => resetLifeFilters());
 displayToggleEls.forEach((input) => input.addEventListener("change", handleDisplayPreferenceChange));
+hideSidebarBtnEl.addEventListener("click", () => setEditorSidebarVisibility(false));
+showSidebarBtnEl.addEventListener("click", () => setEditorSidebarVisibility(true, { shouldScroll: true }));
 
 anniversaryTypeGroupEl.addEventListener("click", (event) => {
   const chip = event.target.closest(".type-chip");
@@ -3048,6 +3147,7 @@ window.addEventListener("beforeunload", () => {
 
 setDailyQuote();
 applyDisplayPreferences(readDisplayPreferences());
+applyEditorSidebarVisibility(readEditorSidebarVisibility());
 setMode("countdown");
 refreshAppState();
 tick();
