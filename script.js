@@ -8,6 +8,7 @@ const COUNTDOWN_DRAFT_STORAGE_KEY = "countdown-draft";
 const ANNIVERSARY_STORAGE_KEY = "anniversary-records";
 const ACTIVE_ANNIVERSARY_STORAGE_KEY = "active-anniversary-id";
 const ANNIVERSARY_DRAFT_STORAGE_KEY = "anniversary-draft";
+const DISPLAY_PREFERENCES_STORAGE_KEY = "display-preferences";
 
 const countdownTabEl = document.querySelector("#countdownTab");
 const anniversaryTabEl = document.querySelector("#anniversaryTab");
@@ -42,10 +43,14 @@ const currentTimeTextEl = document.querySelector("#currentTimeText");
 const insightTextEl = document.querySelector("#insightText");
 const dailyQuoteEl = document.querySelector("#dailyQuote");
 const quoteAuthorEl = document.querySelector("#quoteAuthor");
+const quoteCardEl = document.querySelector("#quoteCard");
 const saveBtnEl = document.querySelector("#saveBtn");
 const resetBtnEl = document.querySelector("#resetBtn");
 const openEditorBtnEl = document.querySelector("#openEditorBtn");
 const timeValueEls = [daysEl, hoursEl, minutesEl, secondsEl];
+const insightCardEl = document.querySelector("#insightCard");
+const displaySettingsSummaryEl = document.querySelector("#displaySettingsSummary");
+const displayToggleEls = Array.from(document.querySelectorAll(".display-toggle-input"));
 
 const anniversaryTypeGroupEl = document.querySelector("#anniversaryTypeGroup");
 const anniversaryTypeChipEls = Array.from(document.querySelectorAll(".type-chip"));
@@ -96,6 +101,7 @@ const exportDataBtnEl = document.querySelector("#exportDataBtn");
 const importDataBtnEl = document.querySelector("#importDataBtn");
 const importDataInputEl = document.querySelector("#importDataInput");
 const dataToolsHintEl = document.querySelector("#dataToolsHint");
+const dataToolsCardEl = document.querySelector("#dataToolsCard");
 const lifeLightboxEl = document.querySelector("#lifeLightbox");
 const closeLifeLightboxBtnEl = document.querySelector("#closeLifeLightboxBtn");
 const prevLifeLightboxBtnEl = document.querySelector("#prevLifeLightboxBtn");
@@ -127,6 +133,7 @@ const BACKUP_STORAGE_KEYS = [
   LEGACY_START_STORAGE_KEY,
   LEGACY_COUNTDOWN_DRAFT_STORAGE_KEY,
   LEGACY_ANNIVERSARY_STORAGE_KEY,
+  DISPLAY_PREFERENCES_STORAGE_KEY,
 ];
 const DAILY_QUOTES = [
   {
@@ -150,6 +157,11 @@ const DAILY_QUOTES = [
     author: "今天也值得被温柔地完成。",
   },
 ];
+const DISPLAY_SECTION_LABELS = {
+  quote: "每日一句",
+  insight: "状态提示",
+  dataTools: "数据工具",
+};
 
 let currentMode = "countdown";
 let countdownRecords = [];
@@ -168,6 +180,7 @@ let lifePhotoUrls = [];
 let lifeEditingId = "";
 let lifePreviewId = "";
 let lifePreviewImageUrl = "";
+let displayPreferences = getDefaultDisplayPreferences();
 
 function pad(value) {
   return String(value).padStart(2, "0");
@@ -264,6 +277,103 @@ function setDailyQuote() {
   const quote = DAILY_QUOTES[daySeed % DAILY_QUOTES.length];
   dailyQuoteEl.textContent = quote.text;
   quoteAuthorEl.textContent = quote.author;
+}
+
+function getDefaultDisplayPreferences() {
+  return {
+    quote: true,
+    insight: true,
+    dataTools: true,
+  };
+}
+
+function normalizeDisplayPreferences(preferences) {
+  return {
+    quote: preferences?.quote !== false,
+    insight: preferences?.insight !== false,
+    dataTools: preferences?.dataTools !== false,
+  };
+}
+
+function readDisplayPreferences() {
+  const rawValue = localStorage.getItem(DISPLAY_PREFERENCES_STORAGE_KEY);
+  if (!rawValue) {
+    return getDefaultDisplayPreferences();
+  }
+
+  try {
+    const parsedValue = JSON.parse(rawValue);
+
+    if (!parsedValue || typeof parsedValue !== "object" || Array.isArray(parsedValue)) {
+      throw new Error("invalid display preferences");
+    }
+
+    return normalizeDisplayPreferences(parsedValue);
+  } catch {
+    localStorage.removeItem(DISPLAY_PREFERENCES_STORAGE_KEY);
+    return getDefaultDisplayPreferences();
+  }
+}
+
+function persistDisplayPreferences(preferences = displayPreferences) {
+  localStorage.setItem(DISPLAY_PREFERENCES_STORAGE_KEY, JSON.stringify(normalizeDisplayPreferences(preferences)));
+}
+
+function updateDisplaySettingsSummary(preferences = displayPreferences) {
+  const hiddenLabels = Object.entries(preferences)
+    .filter(([, visible]) => !visible)
+    .map(([section]) => DISPLAY_SECTION_LABELS[section] || section);
+
+  if (!hiddenLabels.length) {
+    displaySettingsSummaryEl.textContent = "当前全部显示";
+    return;
+  }
+
+  if (hiddenLabels.length === 1) {
+    displaySettingsSummaryEl.textContent = `已隐藏：${hiddenLabels[0]}`;
+    return;
+  }
+
+  displaySettingsSummaryEl.textContent = `已隐藏 ${hiddenLabels.length} 项`;
+}
+
+function applyDisplayPreferences(preferences = displayPreferences) {
+  displayPreferences = normalizeDisplayPreferences(preferences);
+
+  const sectionElements = {
+    quote: quoteCardEl,
+    insight: insightCardEl,
+    dataTools: dataToolsCardEl,
+  };
+
+  Object.entries(sectionElements).forEach(([section, element]) => {
+    const visible = displayPreferences[section] !== false;
+    element.classList.toggle("is-hidden-by-choice", !visible);
+    element.setAttribute("aria-hidden", String(!visible));
+  });
+
+  displayToggleEls.forEach((input) => {
+    const checked = displayPreferences[input.dataset.section] !== false;
+    input.checked = checked;
+    input.closest(".display-toggle")?.classList.toggle("is-off", !checked);
+  });
+
+  updateDisplaySettingsSummary(displayPreferences);
+}
+
+function handleDisplayPreferenceChange(event) {
+  const input = event.target.closest(".display-toggle-input");
+  if (!input) return;
+
+  const section = input.dataset.section;
+  if (!section || !(section in DISPLAY_SECTION_LABELS)) return;
+
+  displayPreferences = {
+    ...displayPreferences,
+    [section]: input.checked,
+  };
+  persistDisplayPreferences(displayPreferences);
+  applyDisplayPreferences(displayPreferences);
 }
 
 function normalizeDateTimeValue(value) {
@@ -2039,6 +2149,9 @@ function migrateLegacyCountdownIfNeeded() {
 }
 
 async function refreshAppState() {
+  displayPreferences = readDisplayPreferences();
+  applyDisplayPreferences(displayPreferences);
+
   hydrateCountdownForm(readCountdownDraft());
   countdownRecords = readSavedCountdowns();
   if (!countdownRecords.length) {
@@ -2917,6 +3030,7 @@ lifeSearchInputEl.addEventListener("input", handleLifeFiltersChange);
 lifeStartDateFilterEl.addEventListener("change", handleLifeFiltersChange);
 lifeEndDateFilterEl.addEventListener("change", handleLifeFiltersChange);
 clearLifeFiltersBtnEl.addEventListener("click", () => resetLifeFilters());
+displayToggleEls.forEach((input) => input.addEventListener("change", handleDisplayPreferenceChange));
 
 anniversaryTypeGroupEl.addEventListener("click", (event) => {
   const chip = event.target.closest(".type-chip");
@@ -2933,6 +3047,7 @@ window.addEventListener("beforeunload", () => {
 });
 
 setDailyQuote();
+applyDisplayPreferences(readDisplayPreferences());
 setMode("countdown");
 refreshAppState();
 tick();

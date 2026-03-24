@@ -41,7 +41,7 @@
           <div class="hero-chip" id="orbitalCore">今天</div>
         </div>
 
-        <article class="quote-card">
+        <article id="quoteCard" class="quote-card">
           <p class="quote-label">Daily Reflection</p>
           <blockquote id="dailyQuote" class="quote-text">
             真正的从容，不是赶时间，而是知道自己要去哪里。
@@ -240,12 +240,69 @@
           <p id="currentTimeText" class="current-time">现在时间：--:--:--</p>
         </div>
 
-        <div class="insight-card">
+        <div id="insightCard" class="insight-card">
           <p class="insight-label">状态提示</p>
           <p id="insightText" class="insight-text">
             设一个明确的下班时间，会让今天更有终点感。
           </p>
         </div>
+
+        <section class="display-settings-card" aria-labelledby="displaySettingsTitle">
+          <div class="display-settings-head">
+            <div>
+              <p class="card-tag">显示选项</p>
+              <h3 id="displaySettingsTitle" class="display-settings-title">可选隐藏辅助模块</h3>
+            </div>
+            <p id="displaySettingsSummary" class="display-settings-summary">当前全部显示</p>
+          </div>
+
+          <div class="display-settings-grid">
+            <label class="display-toggle" for="toggleQuoteCard">
+              <span class="display-toggle-copy">
+                <span class="display-toggle-title">每日一句</span>
+                <small class="display-toggle-text">控制首页的 Daily Reflection 卡片</small>
+              </span>
+              <input
+                id="toggleQuoteCard"
+                class="display-toggle-input"
+                type="checkbox"
+                data-section="quote"
+                checked
+              />
+              <span class="display-toggle-switch" aria-hidden="true"></span>
+            </label>
+
+            <label class="display-toggle" for="toggleInsightCard">
+              <span class="display-toggle-copy">
+                <span class="display-toggle-title">状态提示</span>
+                <small class="display-toggle-text">控制右侧状态提示卡片</small>
+              </span>
+              <input
+                id="toggleInsightCard"
+                class="display-toggle-input"
+                type="checkbox"
+                data-section="insight"
+                checked
+              />
+              <span class="display-toggle-switch" aria-hidden="true"></span>
+            </label>
+
+            <label class="display-toggle" for="toggleDataToolsCard">
+              <span class="display-toggle-copy">
+                <span class="display-toggle-title">数据工具</span>
+                <small class="display-toggle-text">控制导入导出备份区域</small>
+              </span>
+              <input
+                id="toggleDataToolsCard"
+                class="display-toggle-input"
+                type="checkbox"
+                data-section="dataTools"
+                checked
+              />
+              <span class="display-toggle-switch" aria-hidden="true"></span>
+            </label>
+          </div>
+        </section>
 
         <div id="countdownEditor" class="editor-mode">
           <div class="editor-body">
@@ -369,7 +426,7 @@
           </div>
         </div>
 
-        <section class="data-tools-card" aria-labelledby="dataToolsTitle">
+        <section id="dataToolsCard" class="data-tools-card" aria-labelledby="dataToolsTitle">
           <div class="data-tools-head">
             <p class="card-tag">数据工具</p>
             <h3 id="dataToolsTitle" class="data-tools-title">备份你的时间记录</h3>
