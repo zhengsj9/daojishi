@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="app_name">时间菜单</string>
+  <string name="export_cancelled">已取消保存备份文件。</string>
+  <string name="export_failed">备份文件保存失败，请稍后重试。</string>
+  <string name="export_success">备份文件已保存。</string>
+  <string name="external_link_unavailable">当前设备无法打开这个链接。</string>
+  <string name="file_chooser_unavailable">当前设备无法打开文件选择器。</string>
+</resources>

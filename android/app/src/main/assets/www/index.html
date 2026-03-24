@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>时间菜单</title>
+    <meta name="application-name" content="时间菜单" />
+    <meta name="theme-color" content="#edf8f3" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="时间菜单" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <link rel="manifest" href="./app.webmanifest" />
+    <link rel="icon" href="./icons/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Noto+Sans+SC:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="ambient-layer ambient-layer-a" aria-hidden="true"></div>
+    <div class="ambient-layer ambient-layer-b" aria-hidden="true"></div>
+    <div class="grid-overlay" aria-hidden="true"></div>
+
+    <main id="appShell" class="app-shell">
+      <section class="hero-card">
+        <div class="menu-bar" role="tablist" aria-label="时间模式">
+          <button id="countdownTab" class="menu-tab is-active" type="button" role="tab" aria-selected="true">
+            倒计时
+          </button>
+          <button id="anniversaryTab" class="menu-tab" type="button" role="tab" aria-selected="false">
+            纪念日
+          </button>
+          <button id="lifeTab" class="menu-tab" type="button" role="tab" aria-selected="false">
+            点滴生活
+          </button>
+        </div>
+
+        <div class="hero-top">
+          <div class="hero-intro">
+            <p class="eyebrow" id="heroEyebrow">选择一种时间记录方式</p>
+            <p class="subtitle" id="heroSubtitle">
+              选择一种时间记录方式。
+            </p>
+          </div>
+          <div class="hero-chip" id="orbitalCore">今天</div>
+        </div>
+
+        <article id="quoteCard" class="quote-card">
+          <p class="quote-label">Daily Reflection</p>
+          <blockquote id="dailyQuote" class="quote-text">
+            真正的从容，不是赶时间，而是知道自己要去哪里。
+          </blockquote>
+          <p class="quote-author" id="quoteAuthor">
+            每日一句哲理，陪你把忙碌的一天过得更有节奏。
+          </p>
+        </article>
+
+        <div id="countdownView" class="mode-view">
+          <div id="countdownPanel" class="countdown-panel">
+            <div class="countdown-head">
+              <p class="anniversary-kicker">倒计时</p>
+              <h2 class="countdown-title" id="countdownNameText">还没有添加倒计时</h2>
+              <p class="countdown-date" id="countdownTargetText">添加一个未来时间，把重要时刻提前放进期待里。</p>
+            </div>
+
+            <div class="countdown-meta-grid">
+              <article class="countdown-meta-card">
+                <span class="countdown-meta-label">目标时间</span>
+                <strong id="countdownMetaTarget">等待设置</strong>
+              </article>
+              <article class="countdown-meta-card">
+                <span class="countdown-meta-label">当前状态</span>
+                <strong id="countdownMetaState">未开始</strong>
+              </article>
+            </div>
+
+            <div class="divider-line" aria-hidden="true"></div>
+
+            <div class="time-grid countdown-time-grid" aria-live="polite">
+              <article class="time-block">
+                <span id="days" class="time-value">00</span>
+                <span class="time-label">天</span>
+              </article>
+              <article class="time-block">
+                <span id="hours" class="time-value">00</span>
+                <span class="time-label">小时</span>
+              </article>
+              <article class="time-block">
+                <span id="minutes" class="time-value">00</span>
+                <span class="time-label">分钟</span>
+              </article>
+              <article class="time-block">
+                <span id="seconds" class="time-value">00</span>
+                <span class="time-label">秒</span>
+              </article>
+            </div>
+
+            <p class="mood-line">把等待变成一件值得期待的事</p>
+
+            <div class="status-row">
+              <span class="status-dot" aria-hidden="true"></span>
+              <p id="statusText" class="status-text">可以添加旅行、生日、考试、发售日等未来节点。</p>
+            </div>
+          </div>
+
+          <div class="record-list-card">
+            <div class="record-list-head">
+              <p class="record-list-title">已添加倒计时</p>
+              <span id="countdownListSummary" class="record-list-summary">0 条</span>
+            </div>
+
+            <div id="countdownList" class="record-list is-empty" aria-live="polite">
+              <article class="record-empty-state">
+                <p class="record-empty-title">倒计时列表还是空的</p>
+                <p class="record-empty-text">先添加一个未来目标，主卡片就会实时显示它的剩余时间。</p>
+              </article>
+            </div>
+          </div>
+
+          <div class="action-row">
+            <button id="openEditorBtn" class="primary-btn" type="button">添加倒计时</button>
+            <button id="resetBtn" class="ghost-btn" type="button">清空倒计时</button>
+          </div>
+        </div>
+
+        <div id="anniversaryView" class="mode-view is-hidden">
+          <div id="anniversaryPanel" class="anniversary-panel">
+            <div class="anniversary-head">
+              <p class="anniversary-kicker" id="anniversaryTypeText">纪念日</p>
+              <h2 class="anniversary-title" id="anniversaryNameText">还没有设置纪念日</h2>
+              <p class="anniversary-date" id="anniversaryDateText">输入一个重要日期，开始记录它。</p>
+            </div>
+
+            <div class="anniversary-days-card">
+              <span class="anniversary-days-label" id="anniversaryDaysLabel">已经走过</span>
+              <div class="anniversary-days-number">
+                <span id="anniversaryDays">0</span>
+                <small>天</small>
+              </div>
+            </div>
+
+            <div class="divider-line" aria-hidden="true"></div>
+
+            <p class="mood-line">把重要的日子留在时间里</p>
+
+            <div class="status-row">
+              <span class="status-dot" aria-hidden="true"></span>
+              <p id="anniversaryStatusText" class="status-text">可以记录生日、恋爱纪念日、入职日或任何重要时刻。</p>
+            </div>
+          </div>
+
+          <div class="record-list-card">
+            <div class="record-list-head">
+              <p class="record-list-title">已添加纪念日</p>
+              <span id="anniversaryListSummary" class="record-list-summary">0 条</span>
+            </div>
+
+            <div id="anniversaryList" class="record-list is-empty" aria-live="polite">
+              <article class="record-empty-state">
+                <p class="record-empty-title">纪念日列表还没有开始</p>
+                <p class="record-empty-text">添加多个重要时刻后，可以随时切换当前展示的那一条。</p>
+              </article>
+            </div>
+          </div>
+
+          <div class="action-row">
+            <button id="openAnniversaryBtn" class="primary-btn" type="button">添加纪念日</button>
+            <button id="resetAnniversaryBtn" class="ghost-btn" type="button">清空纪念日</button>
+          </div>
+        </div>
+
+        <div id="lifeView" class="mode-view is-hidden">
+          <div class="life-panel">
+            <div class="life-head">
+              <p class="life-kicker">点滴生活</p>
+              <h2 class="life-title" id="lifeHeadline">还没有生活照片</h2>
+              <p class="life-summary" id="lifeSummaryText">
+                上传照片后，系统会自动记录上传时间，并沿着时间线把日常慢慢串起来。
+              </p>
+            </div>
+
+            <div class="life-stats-grid">
+              <article class="life-stat-card">
+                <span class="life-stat-label">照片数量</span>
+                <strong id="lifeCountText">0 张</strong>
+              </article>
+              <article class="life-stat-card">
+                <span class="life-stat-label">最近上传</span>
+                <strong id="lifeLatestText">等待记录</strong>
+              </article>
+            </div>
+
+            <div class="life-filter-card">
+              <div class="life-filter-head">
+                <p class="life-filter-title">搜索与筛选</p>
+                <button id="clearLifeFiltersBtn" class="quick-btn" type="button">清空筛选</button>
+              </div>
+
+              <div class="life-filter-grid">
+                <label class="time-input-wrap" for="lifeSearchInput">
+                  <span>关键词</span>
+                  <input id="lifeSearchInput" type="search" placeholder="搜索标题、备注或文件名" />
+                </label>
+
+                <label class="time-input-wrap" for="lifeStartDateFilter">
+                  <span>开始日期</span>
+                  <input id="lifeStartDateFilter" type="date" />
+                </label>
+
+                <label class="time-input-wrap" for="lifeEndDateFilter">
+                  <span>结束日期</span>
+                  <input id="lifeEndDateFilter" type="date" />
+                </label>
+              </div>
+
+              <p id="lifeFilterSummaryText" class="life-filter-summary">当前显示全部记录。</p>
+            </div>
+
+            <div class="divider-line" aria-hidden="true"></div>
+
+            <p class="mood-line">把生活里的闪光时刻，沿着一条线认真收藏</p>
+
+            <div id="lifeTimeline" class="life-timeline is-empty" aria-live="polite">
+              <article class="life-empty-state">
+                <p class="life-empty-title">时间线还没有开始</p>
+                <p class="life-empty-text">选一张喜欢的照片，上传的那一刻就会成为这条生活线上的新节点。</p>
+              </article>
+            </div>
+          </div>
+
+          <div class="action-row">
+            <button id="openLifeUploaderBtn" class="primary-btn" type="button">上传照片</button>
+            <button id="resetLifeBtn" class="ghost-btn" type="button">清空时间线</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="editorCard" class="editor-card">
+        <div class="editor-header">
+          <div>
+            <p class="card-tag" id="editorTag">今日设置</p>
+            <h2 id="editorTitle">安排你的下班时刻</h2>
+          </div>
+          <div class="editor-header-actions">
+            <p id="currentTimeText" class="current-time">现在时间：--:--:--</p>
+            <div class="editor-quick-actions">
+              <button id="installAppBtn" class="app-install-btn" type="button" hidden>
+                安装 App
+              </button>
+              <button
+                id="hideSidebarBtn"
+                class="sidebar-toggle-btn"
+                type="button"
+                aria-controls="editorCard"
+                aria-expanded="true"
+              >
+                隐藏右侧菜单
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div id="insightCard" class="insight-card">
+          <p class="insight-label">状态提示</p>
+          <p id="insightText" class="insight-text">
+            设一个明确的下班时间，会让今天更有终点感。
+          </p>
+        </div>
+
+        <section class="display-settings-card" aria-labelledby="displaySettingsTitle">
+          <div class="display-settings-head">
+            <div>
+              <p class="card-tag">显示选项</p>
+              <h3 id="displaySettingsTitle" class="display-settings-title">可选隐藏辅助模块</h3>
+            </div>
+            <p id="displaySettingsSummary" class="display-settings-summary">当前全部显示</p>
+          </div>
+
+          <div class="display-settings-grid">
+            <label class="display-toggle" for="toggleQuoteCard">
+              <span class="display-toggle-copy">
+                <span class="display-toggle-title">每日一句</span>
+                <small class="display-toggle-text">控制首页的 Daily Reflection 卡片</small>
+              </span>
+              <input
+                id="toggleQuoteCard"
+                class="display-toggle-input"
+                type="checkbox"
+                data-section="quote"
+                checked
+              />
+              <span class="display-toggle-switch" aria-hidden="true"></span>
+            </label>
+
+            <label class="display-toggle" for="toggleInsightCard">
+              <span class="display-toggle-copy">
+                <span class="display-toggle-title">状态提示</span>
+                <small class="display-toggle-text">控制右侧状态提示卡片</small>
+              </span>
+              <input
+                id="toggleInsightCard"
+                class="display-toggle-input"
+                type="checkbox"
+                data-section="insight"
+                checked
+              />
+              <span class="display-toggle-switch" aria-hidden="true"></span>
+            </label>
+
+            <label class="display-toggle" for="toggleDataToolsCard">
+              <span class="display-toggle-copy">
+                <span class="display-toggle-title">数据工具</span>
+                <small class="display-toggle-text">控制导入导出备份区域</small>
+              </span>
+              <input
+                id="toggleDataToolsCard"
+                class="display-toggle-input"
+                type="checkbox"
+                data-section="dataTools"
+                checked
+              />
+              <span class="display-toggle-switch" aria-hidden="true"></span>
+            </label>
+          </div>
+        </section>
+
+        <div id="countdownEditor" class="editor-mode">
+          <div class="editor-body">
+            <label class="time-input-wrap" for="countdownName">
+              <span>倒计时名称</span>
+              <input id="countdownName" type="text" maxlength="24" placeholder="例如：旅行出发" />
+            </label>
+
+            <label class="time-input-wrap" for="countdownTarget">
+              <span>目标时间</span>
+              <input id="countdownTarget" type="datetime-local" />
+              <small class="field-hint">支持连续添加多条倒计时，适合生日、考试、出发日或任何未来节点。</small>
+            </label>
+
+            <button id="saveBtn" class="save-btn" type="button">添加到倒计时列表</button>
+          </div>
+        </div>
+
+        <div id="anniversaryEditor" class="editor-mode is-hidden">
+          <div class="editor-body">
+            <div class="time-input-wrap">
+              <span>纪念类型</span>
+              <div id="anniversaryTypeGroup" class="type-chip-group" role="radiogroup" aria-label="纪念类型">
+                <button class="type-chip is-active" type="button" data-type="生日" role="radio" aria-checked="true">生日</button>
+                <button class="type-chip" type="button" data-type="恋爱纪念日" role="radio" aria-checked="false">恋爱纪念日</button>
+                <button class="type-chip" type="button" data-type="结婚纪念日" role="radio" aria-checked="false">结婚纪念日</button>
+                <button class="type-chip" type="button" data-type="入职纪念日" role="radio" aria-checked="false">入职纪念日</button>
+                <button class="type-chip" type="button" data-type="毕业纪念日" role="radio" aria-checked="false">毕业纪念日</button>
+                <button class="type-chip" type="button" data-type="自定义" role="radio" aria-checked="false">自定义</button>
+              </div>
+            </div>
+
+            <label class="time-input-wrap" for="anniversaryName">
+              <span>名称</span>
+              <input id="anniversaryName" type="text" maxlength="24" placeholder="例如：和她在一起" />
+            </label>
+
+            <label class="time-input-wrap" for="anniversaryDate">
+              <span>日期</span>
+              <input id="anniversaryDate" type="date" />
+            </label>
+
+            <div class="image-upload-card">
+              <div class="image-upload-head">
+                <span>背景图片</span>
+                <small class="field-hint">支持常见图片格式，图片会跟随这次新增的纪念日一起保存。</small>
+              </div>
+
+              <div id="anniversaryImagePreview" class="anniversary-image-preview" aria-hidden="true">
+                <span id="anniversaryImagePreviewText">未选择背景图</span>
+              </div>
+
+              <div class="image-upload-actions">
+                <button id="selectAnniversaryImageBtn" class="ghost-btn" type="button">选择背景图</button>
+                <button id="clearAnniversaryImageBtn" class="quick-btn" type="button">移除图片</button>
+              </div>
+
+              <input id="anniversaryImageInput" type="file" accept="image/*" hidden />
+              <p id="anniversaryImageHint" class="field-hint">可选，不上传时会使用默认纪念日卡片样式。</p>
+            </div>
+
+            <button id="saveAnniversaryBtn" class="save-btn" type="button">添加到纪念日列表</button>
+          </div>
+        </div>
+
+        <div id="lifeEditor" class="editor-mode is-hidden">
+          <div class="editor-body">
+            <div class="image-upload-card life-upload-card">
+              <div class="image-upload-head">
+                <span>上传生活照片</span>
+                <small class="field-hint">支持一次选择多张图片，系统会自动记录上传时间并加入时间线。</small>
+              </div>
+
+              <div class="life-upload-preview">
+                <p class="life-upload-preview-title">时间线会自动延展</p>
+                <p id="lifeUploadPreviewText" class="life-upload-preview-text">
+                  每张照片都会带上上传时刻，像日记一样被串联起来。
+                </p>
+              </div>
+
+              <div id="lifeDropzone" class="life-dropzone" tabindex="0" role="button" aria-label="拖拽上传生活照片">
+                <p class="life-dropzone-title">拖拽照片到这里</p>
+                <p class="life-dropzone-text">也可以点击下方按钮选择图片，支持一次加入多张。</p>
+              </div>
+
+              <label class="time-input-wrap" for="lifeTitle">
+                <span>这一组标题</span>
+                <input id="lifeTitle" type="text" maxlength="28" placeholder="例如：周末散步" />
+              </label>
+
+              <label class="time-input-wrap" for="lifeNote">
+                <span>这一刻想写的话</span>
+                <textarea
+                  id="lifeNote"
+                  class="text-area-input"
+                  rows="4"
+                  maxlength="140"
+                  placeholder="可选，写一点当时的心情、地点或发生的小事。"
+                ></textarea>
+              </label>
+
+              <div class="life-upload-stats">
+                <article class="life-mini-stat">
+                  <span>已记录</span>
+                  <strong id="lifeEditorCount">0 张</strong>
+                </article>
+                <article class="life-mini-stat">
+                  <span>最新节点</span>
+                  <strong id="lifeEditorLatestText">等待上传</strong>
+                </article>
+              </div>
+
+              <div class="image-upload-actions">
+                <button id="selectLifeImageBtn" class="save-btn" type="button">选择照片并加入时间线</button>
+                <button id="clearLifeBtn" class="ghost-btn" type="button">清空全部记录</button>
+              </div>
+
+              <input id="lifeImageInput" type="file" accept="image/*" multiple hidden />
+              <p id="lifeUploadHint" class="field-hint">支持 JPG、PNG、WebP 等图片格式，单张建议不超过 8MB。</p>
+            </div>
+          </div>
+        </div>
+
+        <section id="dataToolsCard" class="data-tools-card" aria-labelledby="dataToolsTitle">
+          <div class="data-tools-head">
+            <p class="card-tag">数据工具</p>
+            <h3 id="dataToolsTitle" class="data-tools-title">备份你的时间记录</h3>
+          </div>
+
+          <p class="data-tools-text">
+            可以把倒计时、纪念日和点滴生活一起导出成备份文件，也可以在新的浏览器里重新导入。
+          </p>
+
+          <div class="image-upload-actions">
+            <button id="exportDataBtn" class="save-btn" type="button">导出数据</button>
+            <button id="importDataBtn" class="ghost-btn" type="button">导入数据</button>
+          </div>
+
+          <input id="importDataInput" type="file" accept="application/json,.json" hidden />
+          <p id="dataToolsHint" class="field-hint">导出会包含当前浏览器里保存的图片和文字记录。</p>
+        </section>
+      </section>
+
+      <button
+        id="showSidebarBtn"
+        class="sidebar-reveal-btn"
+        type="button"
+        aria-controls="editorCard"
+        aria-expanded="false"
+        hidden
+      >
+        显示右侧菜单
+      </button>
+    </main>
+
+    <div id="lifeLightbox" class="life-lightbox is-hidden" aria-hidden="true">
+      <div class="life-lightbox-backdrop" data-close-lightbox="true"></div>
+      <div class="life-lightbox-dialog" role="dialog" aria-modal="true" aria-labelledby="lifeLightboxTitle">
+        <button id="closeLifeLightboxBtn" class="life-lightbox-close" type="button" aria-label="关闭大图预览">
+          关闭
+        </button>
+
+        <div class="life-lightbox-media-wrap">
+          <button id="prevLifeLightboxBtn" class="life-lightbox-nav life-lightbox-prev" type="button" aria-label="查看上一张">
+            上一张
+          </button>
+
+          <div class="life-lightbox-media">
+            <img id="lifeLightboxImage" class="life-lightbox-image" alt="点滴生活大图预览" />
+          </div>
+
+          <button id="nextLifeLightboxBtn" class="life-lightbox-nav life-lightbox-next" type="button" aria-label="查看下一张">
+            下一张
+          </button>
+        </div>
+
+        <div class="life-lightbox-meta">
+          <p id="lifeLightboxCounter" class="life-lightbox-counter">第 0 张</p>
+          <h3 id="lifeLightboxTitle" class="life-lightbox-title">生活照片预览</h3>
+          <p id="lifeLightboxTime" class="life-lightbox-time">上传时间</p>
+          <p id="lifeLightboxNote" class="life-lightbox-note">这里会显示这张照片的备注。</p>
+          <p id="lifeLightboxFile" class="life-lightbox-file">原图文件名</p>
+        </div>
+      </div>
+    </div>
+
+    <script src="./script.js"></script>
+  </body>
+</html>

@@ -32,6 +32,25 @@ python3 -m http.server 4173
 
 发布后，桌面 Chrome / Edge 和安卓浏览器会支持“安装 App”；iPhone / iPad 可以在 Safari 里通过“添加到主屏幕”安装。
 
+## Android App
+
+仓库现在额外包含了一个原生 Android WebView 外壳工程，目录在 `android/`。
+
+1. 每次修改根目录网页文件后，先执行：
+
+```bash
+./scripts/sync-android-assets.sh
+```
+
+2. 用 Android Studio 打开 `android/`
+3. 首次同步 Gradle 后，选择模拟器或真机运行
+
+说明：
+
+- Android 工程会把网页资源打包进 `android/app/src/main/assets/www/`
+- App 内已经补了原生文件选择器支持，图片上传、导入 JSON 和导出备份都能走 Android 原生能力
+- 这个工作区里没有 Android SDK，所以这里我只能生成工程，不能直接替你打出 APK
+
 ## 目录说明
 
 - `index.html`: 页面结构
@@ -40,3 +59,5 @@ python3 -m http.server 4173
 - `app.webmanifest`: PWA 应用清单
 - `sw.js`: 离线缓存与应用壳
 - `icons/`: App 图标资源
+- `android/`: Android WebView App 工程
+- `scripts/sync-android-assets.sh`: 同步网页资源到 Android assets
