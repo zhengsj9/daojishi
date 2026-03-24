@@ -4,6 +4,15 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>时间菜单</title>
+    <meta name="application-name" content="时间菜单" />
+    <meta name="theme-color" content="#edf8f3" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="时间菜单" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <link rel="manifest" href="./app.webmanifest" />
+    <link rel="icon" href="./icons/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -239,15 +248,20 @@
           </div>
           <div class="editor-header-actions">
             <p id="currentTimeText" class="current-time">现在时间：--:--:--</p>
-            <button
-              id="hideSidebarBtn"
-              class="sidebar-toggle-btn"
-              type="button"
-              aria-controls="editorCard"
-              aria-expanded="true"
-            >
-              隐藏右侧菜单
-            </button>
+            <div class="editor-quick-actions">
+              <button id="installAppBtn" class="app-install-btn" type="button" hidden>
+                安装 App
+              </button>
+              <button
+                id="hideSidebarBtn"
+                class="sidebar-toggle-btn"
+                type="button"
+                aria-controls="editorCard"
+                aria-expanded="true"
+              >
+                隐藏右侧菜单
+              </button>
+            </div>
           </div>
         </div>
 

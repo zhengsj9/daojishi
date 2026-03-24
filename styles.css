@@ -1465,12 +1465,21 @@ button:disabled {
   flex-wrap: wrap;
 }
 
+.editor-quick-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .current-time {
   margin: 0;
   font-family: "Space Grotesk", sans-serif;
   font-size: 1rem;
 }
 
+.app-install-btn,
 .sidebar-toggle-btn,
 .sidebar-reveal-btn {
   display: inline-flex;
@@ -1491,6 +1500,14 @@ button:disabled {
     box-shadow 180ms ease;
 }
 
+.app-install-btn {
+  border-color: rgba(79, 148, 144, 0.08);
+  background: linear-gradient(135deg, var(--accent), var(--accent-deep));
+  color: #ffffff;
+  box-shadow: 0 16px 30px rgba(79, 148, 144, 0.22);
+}
+
+.app-install-btn:hover,
 .sidebar-toggle-btn:hover,
 .sidebar-reveal-btn:hover {
   transform: translateY(-1px);
@@ -1498,6 +1515,7 @@ button:disabled {
   box-shadow: 0 12px 30px rgba(127, 194, 184, 0.16);
 }
 
+.app-install-btn:focus-visible,
 .sidebar-toggle-btn:focus-visible,
 .sidebar-reveal-btn:focus-visible {
   outline: none;
@@ -1852,6 +1870,12 @@ button:disabled {
     align-items: flex-start;
   }
 
+  .editor-quick-actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .editor-quick-actions > button,
   .sidebar-toggle-btn {
     width: 100%;
   }

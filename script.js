@@ -47,6 +47,7 @@ const dailyQuoteEl = document.querySelector("#dailyQuote");
 const quoteAuthorEl = document.querySelector("#quoteAuthor");
 const quoteCardEl = document.querySelector("#quoteCard");
 const editorCardEl = document.querySelector("#editorCard");
+const installAppBtnEl = document.querySelector("#installAppBtn");
 const hideSidebarBtnEl = document.querySelector("#hideSidebarBtn");
 const showSidebarBtnEl = document.querySelector("#showSidebarBtn");
 const saveBtnEl = document.querySelector("#saveBtn");
@@ -187,6 +188,7 @@ let lifePreviewId = "";
 let lifePreviewImageUrl = "";
 let displayPreferences = getDefaultDisplayPreferences();
 let isEditorSidebarVisible = readEditorSidebarVisibility();
+let deferredInstallPrompt = null;
 
 function pad(value) {
   return String(value).padStart(2, "0");
@@ -346,6 +348,49 @@ function persistEditorSidebarVisibility(isVisible = isEditorSidebarVisible) {
   }
 
   localStorage.setItem(EDITOR_SIDEBAR_VISIBILITY_STORAGE_KEY, "false");
+}
+
+function isStandaloneApp() {
+  return window.matchMedia?.("(display-mode: standalone)")?.matches || window.navigator.standalone === true;
+}
+
+function updateInstallAppButton() {
+  if (!installAppBtnEl) return;
+
+  const canPromptInstall = Boolean(deferredInstallPrompt) && !isStandaloneApp();
+  installAppBtnEl.hidden = !canPromptInstall;
+  installAppBtnEl.disabled = false;
+}
+
+async function handleInstallApp() {
+  if (!deferredInstallPrompt) return;
+
+  const promptEvent = deferredInstallPrompt;
+  deferredInstallPrompt = null;
+  installAppBtnEl.disabled = true;
+  updateInstallAppButton();
+
+  try {
+    await promptEvent.prompt();
+    await promptEvent.userChoice;
+  } catch {
+    installAppBtnEl.disabled = false;
+  }
+
+  updateInstallAppButton();
+}
+
+async function registerAppServiceWorker() {
+  if (!("serviceWorker" in navigator)) return;
+  if (!["http:", "https:"].includes(window.location.protocol)) return;
+
+  try {
+    await navigator.serviceWorker.register("./sw.js", {
+      scope: "./",
+    });
+  } catch {
+    // Ignore registration failures so the core app keeps working.
+  }
 }
 
 function updateDisplaySettingsSummary(preferences = displayPreferences) {
@@ -3128,8 +3173,20 @@ lifeStartDateFilterEl.addEventListener("change", handleLifeFiltersChange);
 lifeEndDateFilterEl.addEventListener("change", handleLifeFiltersChange);
 clearLifeFiltersBtnEl.addEventListener("click", () => resetLifeFilters());
 displayToggleEls.forEach((input) => input.addEventListener("change", handleDisplayPreferenceChange));
+installAppBtnEl.addEventListener("click", handleInstallApp);
 hideSidebarBtnEl.addEventListener("click", () => setEditorSidebarVisibility(false));
 showSidebarBtnEl.addEventListener("click", () => setEditorSidebarVisibility(true, { shouldScroll: true }));
+
+window.addEventListener("beforeinstallprompt", (event) => {
+  event.preventDefault();
+  deferredInstallPrompt = event;
+  updateInstallAppButton();
+});
+
+window.addEventListener("appinstalled", () => {
+  deferredInstallPrompt = null;
+  updateInstallAppButton();
+});
 
 anniversaryTypeGroupEl.addEventListener("click", (event) => {
   const chip = event.target.closest(".type-chip");
@@ -3148,6 +3205,8 @@ window.addEventListener("beforeunload", () => {
 setDailyQuote();
 applyDisplayPreferences(readDisplayPreferences());
 applyEditorSidebarVisibility(readEditorSidebarVisibility());
+updateInstallAppButton();
+registerAppServiceWorker();
 setMode("countdown");
 refreshAppState();
 tick();
